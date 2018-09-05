@@ -23,6 +23,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 # to specify a package greater then the stated version use <=
 install_requires = [
 'angr',
+'capstone==3.0.5rc2',
 'cuckoo',
 'pyorient',
 ]
