@@ -30,7 +30,7 @@ install_requires = [
 
 setup(
     name='binsleuth',
-    version='0.0.0',
+    version='0.0.1',
     packages=packages,
     include_package_data=True,
     long_description=README,
