@@ -22,7 +22,9 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 # to specify any version within a minor or major change use ~= eg virtualenv~= 3.5.0
 # to specify a package greater then the stated version use <=
 install_requires = [
-'angr'
+'angr',
+'cuckoo',
+'pyorient',
 ]
 
 setup(
