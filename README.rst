@@ -39,7 +39,8 @@ project directory or location as you see fit.
 
 
 
- Installation
+
+Installation
 --------------------
 
 Once you have activated the environment, To install the project and dependencies run:
