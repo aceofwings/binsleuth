@@ -22,8 +22,9 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 # to specify any version within a minor or major change use ~= eg virtualenv~= 3.5.0
 # to specify a package greater then the stated version use <=
 install_requires = [
-'angr',
+'angr==7.8.8.1',
 'capstone==3.0.5rc2',
+'pyelftools==0.24',
 'cuckoo',
 'pyorient',
 ]
@@ -44,5 +45,10 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
     ],
-    install_requires = install_requires
+    install_requires = install_requires,
+    entry_points ={
+      'console_scripts': [
+                  'binsleuth = binsleuth.exec:main_func',
+              ],
+      }
 )
