@@ -23,6 +23,8 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 # to specify a package greater then the stated version use <=
 install_requires = [
 'angr==7.8.8.1',
+'pyvex==7.8.8.1',
+'cle==7.8.8.1',
 'capstone==3.0.5rc2',
 'pyelftools==0.24',
 'pycparser==2.18',
