@@ -54,3 +54,11 @@ or to develop and softlink the repository, run
 .. code-block:: bash
 
     python setup.py develop
+
+Running
+-------------------
+Once install test to see if everything is working
+
+.. code-block:: bash
+
+    binsleuth --version
