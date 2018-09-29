@@ -25,7 +25,9 @@ install_requires = [
 'angr==7.8.8.1',
 'capstone==3.0.5rc2',
 'pyelftools==0.24',
-'cuckoo',
+'pycparser==2.18',
+'cuckoo==2.0.6.2',
+'cffi==1.11.5',
 'pyorient',
 ]
 
