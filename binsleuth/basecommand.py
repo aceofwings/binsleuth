@@ -19,13 +19,13 @@ class BaseCommand(object):
         self.__parser = argparse.ArgumentParser(description=self.description)
 
 
-    def __parseArguments(self):
+    def __parse_arguments(self):
         return self.__parser.parse_args(self.arguments)
 
     #execute - executes the command by
     def execute(self):
-        self.extendArgparse(self.__parser)
-        self.run(self.__parseArguments())
+        self.extend_argparse(self.__parser)
+        self.run(self.__parse_arguments())
 
     def run(self,arguments):
         """
@@ -37,7 +37,7 @@ class BaseCommand(object):
         """
         pass
 
-    def extendArgparse(self,parser):
+    def extend_argparse(self,parser):
         """
         Overide to add extra arguments(see arparse docs)
         Extend the arparser with your own custom commands

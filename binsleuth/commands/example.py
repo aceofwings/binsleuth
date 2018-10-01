@@ -1,13 +1,13 @@
 from binsleuth.basecommand import BaseCommand
 
 
-class exampleCommand(BaseCommand):
+class ExampleCommand(BaseCommand):
 
 
     def run(self,arguments):
         print("running")
 
-    def extendArgparse(self,parser):
+    def extend_argparse(self,parser):
         """
         Overide to add extra arguments(see arparse docs)
         Extend the arparser with your own custom commands
