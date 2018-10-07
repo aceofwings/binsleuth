@@ -1,11 +1,13 @@
+from binsleuth.core.operation import Operation
 import logging
 
 logger = logging.getLogger(__name__)
 
-class Operation(object):
+class BufferOverflowOperation(Operation):
 
     def __init__(self,project,**kwargs):
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
+
     def run(self):
         logger.info("Finding Buffer overflow")
 
@@ -15,11 +17,3 @@ class Operation(object):
         unconstrainedState = self.sm.unconstrained[0]
         crashing_input = unconstrainedState.posix.dumps(0)
         logger.info("BufferOverflow found " + crashing_input)
-
-
-class OperationSet(object):
-    """
-    responsible for holding operations and keeping track of this start and finished
-    states
-    """
-    pass
