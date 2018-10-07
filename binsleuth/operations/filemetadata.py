@@ -19,6 +19,9 @@ class FileMetaData(Operation):
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
 
     def run(self):
+        """
+        run metadata collection a file. Collects hash information and size
+        """
         logger.info("Determing File Metadata for " + self.project.filename)
         self.size = self.fileSize().st_size
         self.maglabel = "BYTES"
@@ -33,13 +36,16 @@ class FileMetaData(Operation):
         self.secondaryHash = self.getFileSecondaryHash()
         logger.info(""""
         INFORMATION : {}
-        File Size : {} {}
+        File Size : {:.2f} {}
         Primary ID : {}
         Secondar ID : {}
 
         """.format(self.project.filename, self.size,self.maglabel,self.primaryHash, self.secondaryHash))
 
     def fileSize(self):
+        """
+        Reutnr the size of the file in bytes
+        """
         return os.stat(self.project.filename)
 
     def getFilePrimaryHash(self):
