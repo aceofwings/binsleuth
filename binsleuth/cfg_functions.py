@@ -2,7 +2,7 @@
 
 import os
 import angr
-from angrutils import *
+from angrutils import plot_cfg, hook0
 from angrutils.exploration import NormalizedSteps
 
 # graphviz
