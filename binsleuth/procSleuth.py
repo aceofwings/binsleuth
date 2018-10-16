@@ -56,7 +56,7 @@ class ProcSleuth:
         name = proc_previous.name()
       except Exception as err:
         try:
-          name = str(PROCESS_MEMORY[proc_previous.pid])
+          name = str(self._process_memory[proc_previous.pid])
         except Exception as err:
           name = proc_previous
       for proc_current in current_process_list:
