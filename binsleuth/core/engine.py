@@ -18,8 +18,7 @@ class Engine(object):
                 self.project.append(angr.Project(file))
             self.runner = MultiOperationRunner(self.config.operations, self.project)
         elif isinstance(self.config.file, basestring):
-            self.project  = angr.Project(self.config.file)
-            self.runner = OperationRunner(self.config.operations,self.project)
+            self.runner = OperationRunner(self.config.file, self.config.operations)
         else:
             #Add custom exception
             raise Exception()
@@ -40,20 +39,14 @@ class Engine(object):
         """
         pass
 
-
-
 class OperationRunner(object):
     pendingOperations =  []
     finishedOperations = []
 
-    def __init__(self,operations,project):
-
-        self.project = project
+    def __init__(self,file,operations):
         for operation in operations:
-            self.pendingOperations.append(operation(self.project,**{}))
-
-
-
+            project = angr.Project(file, load_options=operation.project_settings)
+            self.pendingOperations.append(operation(project,**{}))
 
     def runOperations(self):
         """

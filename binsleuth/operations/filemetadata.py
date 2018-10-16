@@ -14,6 +14,9 @@ class FileMetaData(Operation):
     Operations for pulling metadata are placed here.
     Hashing uses sha1 to pull a unique identifier for the file being operated on
     """
+
+    project_settings = {}
+
     def __init__(self,project,**kwargs):
         self.project = project
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)

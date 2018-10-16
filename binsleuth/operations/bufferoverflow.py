@@ -5,6 +5,9 @@ logger = logging.getLogger(__name__)
 
 class BufferOverflowOperation(Operation):
 
+    project_settings = {}
+
+
     def __init__(self,project,**kwargs):
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
 

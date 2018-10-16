@@ -1,6 +1,7 @@
 import os
 import angr
 from angrutils import *
+import logging
 
 from angrutils.exploration import NormalizedSteps
 from binsleuth.core.operation import Operation
@@ -8,17 +9,20 @@ from binsleuth.core.operation import Operation
 
 # graphviz
 # pydot
-#TODO: make these Engine methods to access it's project attr?
+logger = logging.getLogger(__name__)
 
 class ControlFlowGraph(Operation):
 
-    def __init__(self,project,**kwargs):
+    project_settings = {'auto_load_libs' : False}
 
-        kwargs['auto_load_libs'] = False
+    def __init__(self,project,**kwargs):
+        super(ControlFlowGraph, self).__init__(project, **kwargs)
+        logger.info(kwargs)
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
 
     def run(self):
-        pass
+        logger.info("Generating graph")
+        self.graph_cfg_loops("wow")
 
     def static_cfg(self):
         """
