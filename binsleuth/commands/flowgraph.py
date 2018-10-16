@@ -28,3 +28,4 @@ class FlowGraphCommand(BaseCommand):
         argparser - the commands argumentparser
         """
         super(FlowGraphCommand,self).extend_argparse(parser)
+        parser.add_argument('--file', '-f', default=None,help='file to which to run the command with')

@@ -1,14 +1,19 @@
 import os
 import angr
 from angrutils import *
+
 from angrutils.exploration import NormalizedSteps
+from binsleuth.core.operation import Operation
+
 
 # graphviz
 # pydot
 #TODO: make these Engine methods to access it's project attr?
 
-def ControlFlowGraph(operation):
+class ControlFlowGraph(Operation):
+
     def __init__(self,project,**kwargs):
+
         kwargs['auto_load_libs'] = False
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
 
