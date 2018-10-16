@@ -1,4 +1,8 @@
+#!/usr/bin/env python2
+
+import os
 import psutil
+from graphviz import Source
 
 class ProcSleuth:
 
@@ -10,10 +14,12 @@ class ProcSleuth:
     self._lock_proc = None
     self._proc_cons = []
     self._proc_children = []
+    self._proc_mem_map = []
+    self._proc_child_map = {}
   
   def set_state(self):
   
-    ''' Set the current state of process list'''
+    ''' Set the current state of process list '''
     
     process_list = []
     for process_id in psutil.pids():
@@ -25,10 +31,46 @@ class ProcSleuth:
       except Exception as err:
         pass
     return process_list
-
+  
+  def _set_proc_state(self):
+  
+    ''' Set the current state of process '''
+    
+    assert self._lock_proc, "No process locked"
+    
+    self._proc_cons.extend(self._lock_proc.connections())
+    self._proc_children.extend(self._lock_proc.children())
+    try: self._proc_mem_map.extend(self._lock_proc.mem_maps())
+    except: pass
+    self._proc_child_map[self._lock_proc] = self.child_tree(self._lock_proc)
+    
+  
+  def make_dot(self, graphable):
+  
+    with open('graph.dot','w') as out:
+      for line in ('digraph G {','size="16,16";','splines=true;'):
+        out.write('{}\n'.format(line))  
+      for start, d in graphable.items():
+        for end, weight in d.items():
+          out.write('{} -> {} [ label="{}" color="{}" ];\n'.format(start,end,weight,'green'))
+      out.write('}\n')
+    return
+  
+  def create_graph(self, infile, outfile):
+    
+    with open(infile, 'r') as fh:
+      text = fh.read()
+    Source(text).render(outfile, view=True)
+  
+  def child_tree(self, parent):
+    
+    for child in parent.children():
+      self._map[child] = self.child_tree(child)
+    return None
+    
   def print_change(self, previous_process_list):
     
-    ''' Print changes to process list to stdout'''
+    ''' Print changes to process list to stdout '''
     
     current_process_list = self.set_state()
     matched = 0
@@ -75,11 +117,30 @@ class ProcSleuth:
     assert self._lock_proc, "No process locked"
     
     self._go = 1
+    matched = 0
     while self._go:
       
-      print(self._lock_proc.connections())
-      print(self._lock_proc.children())
-      #etc
+      cur_cons = psutil.Process(self._lock_proc.pid).connections()
+      for new_con in cur_cons:
+        for old_con in self._proc_cons:
+          if new_con == old_con:
+            matched = 1
+            break
+        if not matched:
+          print(' +++ ' + str(new_con))
+        matched = 0
+      matched = 0
+      
+      for old_con in self._proc_cons:
+        for new_con in cur_cons:
+          if old_con == new_con:
+            matched = 1
+            break
+        if not matched:
+          print(' --- ' + str(old_con))
+        matched = 0
+      
+      self._proc_cons = cur_cons
       
  
   def run(self):
@@ -89,7 +150,7 @@ class ProcSleuth:
     init = self.set_state()
     while self._go:
       init = self.print_change(init)
-      
+    self._set_proc_state()
     self._monitor()
     return
     
