@@ -1,5 +1,8 @@
+from binsleuth import logger
+import logging
 import argparse
 import sys
+
 
 class BaseCommand(object):
     """
@@ -13,9 +16,12 @@ class BaseCommand(object):
     description = None
     arguments = None
 
+    loggingLevels = {1 : logging.INFO, 2 : logging.WARNING, 3 : logging.DEBUG}
+
 
     def __init__(self,args):
         self.arguments = args
+        self.options = {}
         self.__parser = argparse.ArgumentParser(description=self.description)
 
 
@@ -35,7 +41,11 @@ class BaseCommand(object):
         arguments - arguments recieved from command line excluding command prefix
         By default will attempt to find the launcher
         """
-        pass
+        if arguments.verbose < 4:
+            logger.setLevel(self.loggingLevels[arguments.verbose])
+        else:
+            pass
+
 
     def extend_argparse(self,parser):
         """
@@ -44,4 +54,4 @@ class BaseCommand(object):
         Parameters:
         argparser - the commands argumentparser
         """
-        pass
+        parser.add_argument('--verbose', '-v', default="1",help='verbosity of command (1=info,2=warning,3=debug)',type=int)
