@@ -1,7 +1,7 @@
-#!/usr/bin/env python2
 
 import os
 import psutil
+from datetime import datetime
 from graphviz import Source
 
 class ProcSleuth:
@@ -9,13 +9,13 @@ class ProcSleuth:
   def __init__(self, exe=None):
     self._connection_memory = {}
     self._process_memory = {} 
-    self._go = 1
+    self._go = True
     self._exe = exe
     self._lock_proc = None
     self._proc_cons = []
     self._proc_children = []
     self._proc_mem_map = []
-    self._proc_child_map = {}
+    self._proc_con_memory = {}
   
   def set_state(self):
   
@@ -39,13 +39,17 @@ class ProcSleuth:
     assert self._lock_proc, "No process locked"
     
     self._proc_cons.extend(self._lock_proc.connections())
-    self._proc_children.extend(self._lock_proc.children())
+    self._proc_children.extend(self._lock_proc.children(recursive=True))
     try: self._proc_mem_map.extend(self._lock_proc.mem_maps())
-    except: pass
-    self._proc_child_map[self._lock_proc] = self.child_tree(self._lock_proc)
-    
+    except: pass   
+   
   
   def make_dot(self, graphable):
+  
+    ''' generate a dot file 
+    
+      :graphable: a valid python dict
+    '''
   
     with open('graph.dot','w') as out:
       for line in ('digraph G {','size="16,16";','splines=true;'):
@@ -58,15 +62,16 @@ class ProcSleuth:
   
   def create_graph(self, infile, outfile):
     
+    ''' generates a graph and opens it
+    
+      :infile: a str representing a dot file name
+      :outfile: the str name of the generated graph
+      
+    '''
     with open(infile, 'r') as fh:
       text = fh.read()
     Source(text).render(outfile, view=True)
   
-  def child_tree(self, parent):
-    
-    for child in parent.children():
-      self._map[child] = self.child_tree(child)
-    return None
     
   def print_change(self, previous_process_list):
     
@@ -87,8 +92,10 @@ class ProcSleuth:
           print(proc_current.connections())
           
         if name == self._exe:
+          self._proc_con_memory[datetime.fromtimestamp(proc_current.create_time())] = []
+          self._proc_con_memory[datetime.fromtimestamp(proc_current.create_time())].extend([(proc_current.connections(), True)])
           self._lock_proc = proc_current
-          self._go = 0
+          self._go = False
         
       matched = 0
     matched = 0
@@ -114,19 +121,34 @@ class ProcSleuth:
  
   def _monitor(self):
     
+    ''' monitor the target process '''
+    
     assert self._lock_proc, "No process locked"
     
-    self._go = 1
+    self._go = True
     matched = 0
+    
     while self._go:
-      
-      cur_cons = psutil.Process(self._lock_proc.pid).connections()
+    
+      # connection info
+      if not psutil.pid_exists(self._lock_proc.pid):
+        self._go = False
+        return
+      try: cur_cons = psutil.Process(self._lock_proc.pid).connections()
+      except:
+        self._go = False
+        return
       for new_con in cur_cons:
         for old_con in self._proc_cons:
           if new_con == old_con:
             matched = 1
             break
+            
         if not matched:
+          try: self._proc_con_memory[datetime.now()].extend([(new_con, True)])
+          except:
+            self._proc_con_memory[datetime.now()] = []
+            self._proc_con_memory[datetime.now()].extend([(new_con, True)])     
           print(' +++ ' + str(new_con))
         matched = 0
       matched = 0
@@ -136,7 +158,12 @@ class ProcSleuth:
           if old_con == new_con:
             matched = 1
             break
+            
         if not matched:
+          try: self._proc_con_memory[datetime.now()].extend([(old_con, False)])
+          except:
+            self._proc_con_memory[datetime.now()] = []
+            self._proc_con_memory[datetime.now()].extend([(old_con, False)]) 
           print(' --- ' + str(old_con))
         matched = 0
       
@@ -154,6 +181,9 @@ class ProcSleuth:
     self._monitor()
     return
     
+    
 s = ProcSleuth('excel.exe')
 s.run()
+for k, v in s._proc_con_memory.items():
+  print(k, v)
   
