@@ -11,14 +11,7 @@ class Operation(object):
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
 
     def run(self):
-        logger.info("Finding Buffer overflow")
-
-        while len(self.sm.unconstrained) == 0:
-            self.sm.step()
-
-        unconstrainedState = self.sm.unconstrained[0]
-        crashing_input = unconstrainedState.posix.dumps(0)
-        logger.info("BufferOverflow found " + crashing_input)
+        pass
 
 
 class OperationSet(object):

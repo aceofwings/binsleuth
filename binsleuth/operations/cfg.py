@@ -15,14 +15,20 @@ class ControlFlowGraph(Operation):
 
     project_settings = {'auto_load_libs' : False}
 
-    def __init__(self,project,**kwargs):
+    def __init__(self,project,config,**kwargs):
         super(ControlFlowGraph, self).__init__(project, **kwargs)
-        logger.info(kwargs)
+        self.function_out_dir = config.function_graph_location
+        self.cfg_loops_out_dir = config.loop_graph_location
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
+        self.project_name = os.path.basename(self.project.filename)
 
     def run(self):
-        logger.info("Generating graph")
-        self.graph_cfg_loops("wow")
+        logger.info("Generating cfg graph for " + self.project_name)
+        self.graph_cfg_loops(self.project_name)
+        logger.info("Generate function graph")
+        self.graph_functions()
+        logger.info("Sucessfully generated graphs!")
+
 
     def static_cfg(self):
         """
@@ -49,7 +55,7 @@ class ControlFlowGraph(Operation):
         """
         cfg = self.static_cfg()
 
-        OUT_DIR = "function_graphs"
+        OUT_DIR = os.path.join(self.function_out_dir,self.project_name)
 
         if not os.path.exists(OUT_DIR):
             try:
@@ -59,7 +65,7 @@ class ControlFlowGraph(Operation):
                 return False
 
         for func in cfg.kb.functions.values():
-            plot_func_graph(project, func.transition_graph, "%s/%s_cfg" % (OUT_DIR, func.name), asminst=True, vexinst=False)
+            plot_func_graph(self.project, func.transition_graph, "%s/%s_cfg" % (OUT_DIR, func.name), asminst=True, vexinst=False)
 
         return True
 
@@ -80,7 +86,7 @@ class ControlFlowGraph(Operation):
         start_state.stack_push(0x0)
 
         with hook0(self.project):
-            cfg = project.analyses.CFGAccurate(fail_fast=True,
+            cfg = self.project.analyses.CFGAccurate(fail_fast=True,
                                            starts=[addr],
                                            initial_state=start_state,
                                            context_sensitivity_level=5,

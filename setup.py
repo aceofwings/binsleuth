@@ -29,7 +29,7 @@ install_requires = [
 'pyelftools==0.24',
 'pycparser==2.18',
 'cffi==1.11.5',
-'angr-utils',
+'angr-utils==0.4.0',
 'pyorient',
 ]
 

@@ -17,7 +17,7 @@ class FileMetaData(Operation):
 
     project_settings = {}
 
-    def __init__(self,project,**kwargs):
+    def __init__(self,project,config,**kwargs):
         self.project = project
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
 

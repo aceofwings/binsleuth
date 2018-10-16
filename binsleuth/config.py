@@ -8,7 +8,7 @@ class Config(object):
     framework will default to this
     """
 
-    operations = [ControlFlowGraph]
+    operations = [FileMetaData, ControlFlowGraph, BufferOverflowOperation]
 
     """
     Can be a single string value or an array of string values
@@ -16,3 +16,8 @@ class Config(object):
 
     """
     file  = "./examples/fauxware"
+
+
+    function_graph_location = "function_graphs"
+
+    loop_graph_location = ""

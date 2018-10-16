@@ -7,19 +7,18 @@ import logging
 
 logger =  logging.getLogger(__name__)
 
-class FlowGraphCommand(BaseCommand):
+class OperateCommand(BaseCommand):
 
     def __init__(self,args):
-        super(FlowGraphCommand,self).__init__(args)
+        super(OperateCommand,self).__init__(args)
         self.config = Config()
 
     def run(self,arguments):
-        super(FlowGraphCommand,self).run(arguments)
+        super(OperateCommand,self).run(arguments)
         if  arguments.file is not None:
             self.config.file = arguments.file
 
-        cg = Engine.build_operation(self.config,ControlFlowGraph)
-        cg.run()
+        Engine(self.config).run()
 
     def extend_argparse(self,parser):
         """
@@ -28,5 +27,5 @@ class FlowGraphCommand(BaseCommand):
         Parameters:
         argparser - the commands argumentparser
         """
-        super(FlowGraphCommand,self).extend_argparse(parser)
+        super(OperateCommand,self).extend_argparse(parser)
         parser.add_argument('--file', '-f', default=None,help='file to which to run the command with')
