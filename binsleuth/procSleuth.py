@@ -16,6 +16,8 @@ class ProcSleuth:
     self._proc_children = []
     self._proc_mem_map = []
     self._proc_con_memory = {}
+    self._file_io = []
+    self._file_memory = {}
   
   def set_state(self):
   
@@ -41,37 +43,7 @@ class ProcSleuth:
     self._proc_cons.extend(self._lock_proc.connections())
     self._proc_children.extend(self._lock_proc.children(recursive=True))
     try: self._proc_mem_map.extend(self._lock_proc.mem_maps())
-    except: pass   
-   
-  
-  def make_dot(self, graphable):
-  
-    ''' generate a dot file 
-    
-      :graphable: a valid python dict
-    '''
-  
-    with open('graph.dot','w') as out:
-      for line in ('digraph G {','size="16,16";','splines=true;'):
-        out.write('{}\n'.format(line))  
-      for start, d in graphable.items():
-        for end, weight in d.items():
-          out.write('{} -> {} [ label="{}" color="{}" ];\n'.format(start,end,weight,'green'))
-      out.write('}\n')
-    return
-  
-  def create_graph(self, infile, outfile):
-    
-    ''' generates a graph and opens it
-    
-      :infile: a str representing a dot file name
-      :outfile: the str name of the generated graph
-      
-    '''
-    with open(infile, 'r') as fh:
-      text = fh.read()
-    Source(text).render(outfile, view=True)
-  
+    except: pass
     
   def print_change(self, previous_process_list):
     
@@ -127,51 +99,108 @@ class ProcSleuth:
     assert self._lock_proc, "No process locked"
     
     self._go = True
-    matched = 0
     
     while self._go:
+      
+      self._monitor_network_cons()
+      self._monitor_file_io()
+      
+    return 
+
     
-      # connection info
-      if not psutil.pid_exists(self._lock_proc.pid):
-        self._go = False
-        return
-      try: cur_cons = psutil.Process(self._lock_proc.pid).connections()
-      except:
-        self._go = False
-        return
-      for new_con in cur_cons:
-        for old_con in self._proc_cons:
-          if new_con == old_con:
-            matched = 1
-            break
-            
-        if not matched:
-          timestamp = datetime.now()
-          try: self._proc_con_memory[timestamp].extend([(new_con, True)])
-          except:
-            self._proc_con_memory[timestamp] = []
-            self._proc_con_memory[timestamp].extend([(new_con, True)])     
-          # print(' +++ ' + str(new_con))
-        matched = 0
+    
+   
+  def _monitor_file_io(self):
+    
+    matched = 0
+    if not psutil.pid_exists(self._lock_proc.pid):
+      self._go = False
+      return
+    
+    try: cur_files = psutil.Process(self._lock_proc.pid).open_files()
+    except:
+      self._go = False
+      return
+    
+    for new_file in cur_files:
+      for old_file in self._file_io:
+        if new_file == old_file:
+          matched = 1
+          break
+      
+      if not matched:
+        timestamp = datetime.now()
+        try: self._file_memory[timestamp].extend([(new_file, True)])
+        except:
+          self._file_memory[timestamp] = []
+          self._file_memory[timestamp].extend([(new_file, True)])
+        # print(' +++ ' + str(new_file))
+      
+      matched = 0
+    matched = 0
+    
+    for old_file in self._file_io:
+      for new_file in cur_files:
+        if old_file ==new_file:
+          matched = 1
+          break
+          
+      if not matched:
+        timestamp = datetime.now()
+        try: self._file_memory[timestamp].extend([(old_file, False)])
+        except:
+          self._file_memory[timestamp] = []
+          self._file_memory[timestamp].extend([(old_file, False)])
+        # print(' --- ' + str(old_file))
       matched = 0
       
+    self._file_io = cur_files
+
+
+  def _monitor_network_cons(self):
+    
+    matched = 0
+    # connection info
+    if not psutil.pid_exists(self._lock_proc.pid):
+      self._go = False
+      return
+    try: cur_cons = psutil.Process(self._lock_proc.pid).connections()
+    except:
+      self._go = False
+      return
+    for new_con in cur_cons:
       for old_con in self._proc_cons:
-        for new_con in cur_cons:
-          if old_con == new_con:
-            matched = 1
-            break
-            
-        if not matched:
-          timestamp = datetime.now()
-          try: self._proc_con_memory[timestamp].extend([(old_con, False)])
-          except:
-            self._proc_con_memory[timestamp] = []
-            self._proc_con_memory[timestamp].extend([(old_con, False)]) 
-          # print(' --- ' + str(old_con))
-        matched = 0
-      
-      self._proc_cons = cur_cons
-      
+        if new_con == old_con:
+          matched = 1
+          break
+          
+      if not matched:
+        timestamp = datetime.now()
+        try: self._proc_con_memory[timestamp].extend([(new_con, True)])
+        except:
+          self._proc_con_memory[timestamp] = []
+          self._proc_con_memory[timestamp].extend([(new_con, True)])     
+        # print(' +++ ' + str(new_con))
+      matched = 0
+    matched = 0
+    
+    for old_con in self._proc_cons:
+      for new_con in cur_cons:
+        if old_con == new_con:
+          matched = 1
+          break
+          
+      if not matched:
+        timestamp = datetime.now()
+        try: self._proc_con_memory[timestamp].extend([(old_con, False)])
+        except:
+          self._proc_con_memory[timestamp] = []
+          self._proc_con_memory[timestamp].extend([(old_con, False)]) 
+        # print(' --- ' + str(old_con))
+      matched = 0
+    
+    self._proc_cons = cur_cons
+ 
  
   def run(self):
     
@@ -185,27 +214,31 @@ class ProcSleuth:
     return
     
   def format_time(self, time):
+  
+    ''' graphviz keeps tying to turn colons into ip:port relationship
+      so this method prevents that
+    '''
     return '{}-{}-{} {}.{}.{}.{}'.format(str(time.year), str(time.month), str(time.day), str(time.hour), str(time.minute), str(time.second), str(time.microsecond))
 
   
-  def graph_con_mem(self, outfile='net_connections'):
+  def graph_con_mem(self, outfile='net_connections', view=False):
     
     '''
       create a pdf graph mapping network connections to times
       :outfile: the filename of saved graph
+      :view: if True, pop open graph when done
       
       green edge: new connection
       red edge: connection end
       blue edge: time travel
     '''
-    digraph = Digraph('Network Connections', filename=outfile)
+    digraph = Digraph('Network_Connections', filename=outfile)
     digraph.attr(rankdir="TD")
     for k, v in self._proc_con_memory.items():
       digraph.attr('node', shape='doublecircle')
       digraph.node(self.format_time(k))
       
-      for c in v:
-        
+      for c in v:        
         con = c[0]
         is_new = c[1]
         digraph.attr('node', shape='circle')
@@ -219,10 +252,45 @@ class ProcSleuth:
 
       digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='blue')
 
-    digraph.view()
+    digraph.render(view=view)
     return
     
+  def graph_file_memory(self, outfile='file_operations', view=False):
+    
+    '''
+      create a pdf graph mapping file operations to times
+      :outfile: the filename of saved graph
+      :view: if True, pop open graph when done
+      
+      green edge: file accessed
+      red edge: file close
+      purple edge: time travel
+    '''
+    digraph = Digraph('File_Operation', filename=outfile)
+    digraph.attr(rankdir="TD")
+    for k, v in self._file_memory.items():
+      digraph.attr('node', shape='doublecircle')
+      digraph.node(self.format_time(k))
+      
+      for f in v:
+        file = f[0]
+        is_new = f[1]
+        digraph.attr('node', shape='circle')
+        try: data = '{}\nMode {}\nFlags{}'.format(str(file.path).replace(':', '[colon]'), str(file.mode), str(file.flags))
+        except: data = '{}'.format(str(file.path).replace(':', '[colon]').replace('\\', '/'))
+        digraph.edge(self.format_time(k), data, color='green' if is_new else 'red')
+    
+    digraph.attr('node', shape='doublecircle')
+    for i in range(1, len(self._file_memory.keys())):
+      node1 = list(self._file_memory.keys())[i - 1]
+      node2 = list(self._file_memory.keys())[i]
+
+      digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='purple')
+      
+    digraph.render(view=view)
+    return 
+
 s = ProcSleuth('excel.exe')
 s.run()
 s.graph_con_mem(outfile="graph")
-
+s.graph_file_memory(outfile="filegraph")
