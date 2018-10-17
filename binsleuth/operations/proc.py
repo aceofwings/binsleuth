@@ -7,13 +7,13 @@ from graphviz import Source, Digraph
 from binsleuth.core.operation import Operation
 
 
-class ProcSleuth(Operation):
+class ProccessMonitor(Operation):
 
     def __init__(self,project,config, exe=None ,**kwargs):
         self._connection_memory = {}
         self._process_memory = {}
         self._go = True
-        self._exe = exe
+        self._exe = config.filename
         self._lock_proc = None
         self._proc_cons = []
         self._proc_children = []
@@ -24,7 +24,15 @@ class ProcSleuth(Operation):
 
 
     def run(self):
-        pass
+        ''' Loop to collect process state, check for not-allowed, and print changes to screen'''
+
+        init = self.set_state()
+        while self._go:
+            init = self.print_change(init)
+        self._set_proc_state()
+        self._monitor()
+        return
+
 
     def set_state(self):
         ''' Set the current state of process list '''
@@ -35,8 +43,7 @@ class ProcSleuth(Operation):
                 temp_process = psutil.Process(process_id)
                 process_list.append(temp_process)
                 self._process_memory[process_id] = temp_process.name()
-                self._connection_memory[temp_process.name(
-                )] = temp_process.connections()
+                self._connection_memory[temp_process.name()] = temp_process.connections()
             except Exception as err:
                 pass
         return process_list
@@ -108,7 +115,6 @@ class ProcSleuth(Operation):
         self._go = True
 
         while self._go:
-
             self._monitor_network_cons()
             self._monitor_file_io()
 
@@ -210,15 +216,6 @@ class ProcSleuth(Operation):
 
         self._proc_cons = cur_cons
 
-    def run(self):
-        ''' Loop to collect process state, check for not-allowed, and print changes to screen'''
-
-        init = self.set_state()
-        while self._go:
-            init = self.print_change(init)
-        self._set_proc_state()
-        self._monitor()
-        return
 
     def format_time(self, time):
         ''' graphviz keeps tying to turn colons into ip:port relationship
@@ -303,7 +300,7 @@ class ProcSleuth(Operation):
         return
 
 
-s = ProcSleuth('excel.exe')
-s.run()
-s.graph_con_mem(outfile="graph")
-s.graph_file_memory(outfile="filegraph")
+# s = ProcSleuth('excel.exe')
+# s.run()
+# s.graph_con_mem(outfile="graph")
+# s.graph_file_memory(outfile="filegraph")
