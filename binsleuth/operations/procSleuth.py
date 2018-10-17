@@ -4,10 +4,12 @@ import psutil
 from datetime import datetime
 from graphviz import Source, Digraph
 
+from binsleuth.core.operation import Operation
 
-class ProcSleuth:
 
-    def __init__(self, exe=None):
+class ProcSleuth(Operation):
+
+    def __init__(self,project,config, exe=None ,**kwargs):
         self._connection_memory = {}
         self._process_memory = {}
         self._go = True
@@ -19,6 +21,10 @@ class ProcSleuth:
         self._proc_con_memory = {}
         self._file_io = []
         self._file_memory = {}
+
+
+    def run(self):
+        pass
 
     def set_state(self):
         ''' Set the current state of process list '''
