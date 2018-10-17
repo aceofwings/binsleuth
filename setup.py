@@ -31,7 +31,7 @@ install_requires = [
 'cffi==1.11.5',
 'angr-utils==0.4.0',
 'pyorient',
-'psutils',
+'graphviz'
 ]
 
 setup(

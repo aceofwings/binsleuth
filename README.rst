@@ -9,6 +9,11 @@ Install system dependencies
     libfreetype6-dev liblcms2-dev libwebp-dev \
     tcl8.6-dev tk8.6-dev python-tk graphviz
 
+
+..code-block::bash
+
+    pip install graphviz
+
 Setting up the project structure
 ------------------------------------
 
@@ -17,7 +22,6 @@ Install virtualenv. If running a Debian based system use
 .. code-block:: bash
 
     sudo apt install virtualenv
-
 
 Establish Virtualenv in root directory of repository. You can always structure your
 project directory or location as you see fit.

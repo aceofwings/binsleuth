@@ -3,8 +3,11 @@ import os
 import psutil
 from datetime import datetime
 from graphviz import Source, Digraph
+import logging
 
 from binsleuth.core.operation import Operation
+
+logger =  logging.getLogger(__name__)
 
 
 class ProccessMonitor(Operation):
@@ -13,7 +16,7 @@ class ProccessMonitor(Operation):
         self._connection_memory = {}
         self._process_memory = {}
         self._go = True
-        self._exe = config.filename
+        self._exe = config.file
         self._lock_proc = None
         self._proc_cons = []
         self._proc_children = []
@@ -25,12 +28,17 @@ class ProccessMonitor(Operation):
 
     def run(self):
         ''' Loop to collect process state, check for not-allowed, and print changes to screen'''
-
+        logger.info("Starting Process Monitor for " + self._exe)
+        logger.info("Intializing State")
         init = self.set_state()
+        logger.info("State Intialized")
+
         while self._go:
             init = self.print_change(init)
-        self._set_proc_state()
-        self._monitor()
+            self._set_proc_state()
+            self._monitor()
+
+        Logger.info("Closing Process Monitor")
         return
 
 
@@ -111,6 +119,7 @@ class ProccessMonitor(Operation):
         ''' monitor the target process '''
 
         assert self._lock_proc, "No process locked"
+        logger.info("monitor")
 
         self._go = True
 
