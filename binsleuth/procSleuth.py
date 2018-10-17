@@ -2,7 +2,7 @@
 import os
 import psutil
 from datetime import datetime
-from graphviz import Source
+from graphviz import Source, Digraph
 
 class ProcSleuth:
 
@@ -92,8 +92,9 @@ class ProcSleuth:
           print(proc_current.connections())
           
         if name == self._exe:
+          print('\nHooked Process\n')
           self._proc_con_memory[datetime.fromtimestamp(proc_current.create_time())] = []
-          self._proc_con_memory[datetime.fromtimestamp(proc_current.create_time())].extend([(proc_current.connections(), True)])
+          self._proc_con_memory[datetime.fromtimestamp(proc_current.create_time())].extend([(c, True) for c in proc_current.connections()])
           self._lock_proc = proc_current
           self._go = False
         
@@ -102,7 +103,7 @@ class ProcSleuth:
     
     for proc_previous in previous_process_list:
       try:
-        name = proc_previous.name()
+        name = str(proc_previous.name()).lower()
       except Exception as err:
         try:
           name = str(self._process_memory[proc_previous.pid])
@@ -145,11 +146,12 @@ class ProcSleuth:
             break
             
         if not matched:
-          try: self._proc_con_memory[datetime.now()].extend([(new_con, True)])
+          timestamp = datetime.now()
+          try: self._proc_con_memory[timestamp].extend([(new_con, True)])
           except:
-            self._proc_con_memory[datetime.now()] = []
-            self._proc_con_memory[datetime.now()].extend([(new_con, True)])     
-          print(' +++ ' + str(new_con))
+            self._proc_con_memory[timestamp] = []
+            self._proc_con_memory[timestamp].extend([(new_con, True)])     
+          # print(' +++ ' + str(new_con))
         matched = 0
       matched = 0
       
@@ -160,11 +162,12 @@ class ProcSleuth:
             break
             
         if not matched:
-          try: self._proc_con_memory[datetime.now()].extend([(old_con, False)])
+          timestamp = datetime.now()
+          try: self._proc_con_memory[timestamp].extend([(old_con, False)])
           except:
-            self._proc_con_memory[datetime.now()] = []
-            self._proc_con_memory[datetime.now()].extend([(old_con, False)]) 
-          print(' --- ' + str(old_con))
+            self._proc_con_memory[timestamp] = []
+            self._proc_con_memory[timestamp].extend([(old_con, False)]) 
+          # print(' --- ' + str(old_con))
         matched = 0
       
       self._proc_cons = cur_cons
@@ -181,9 +184,45 @@ class ProcSleuth:
     self._monitor()
     return
     
+  def format_time(self, time):
+    return '{}-{}-{} {}.{}.{}.{}'.format(str(time.year), str(time.month), str(time.day), str(time.hour), str(time.minute), str(time.second), str(time.microsecond))
+
+  
+  def graph_con_mem(self, outfile='net_connections'):
+    
+    '''
+      create a pdf graph mapping network connections to times
+      :outfile: the filename of saved graph
+      
+      green edge: new connection
+      red edge: connection end
+      blue edge: time travel
+    '''
+    digraph = Digraph('Network Connections', filename=outfile)
+    digraph.attr(rankdir="TD")
+    for k, v in self._proc_con_memory.items():
+      digraph.attr('node', shape='doublecircle')
+      digraph.node(self.format_time(k))
+      
+      for c in v:
+        
+        con = c[0]
+        is_new = c[1]
+        digraph.attr('node', shape='circle')
+        data = 'Src {}\tPort {} \n\nDest {}\tPort {} \n\nFamily {} \n\nStatus {}'.format(con.laddr[0], con.laddr[1], con.raddr[0], con.raddr[1], str(con.family), con.status)
+        digraph.edge(self.format_time(k), data , color='green' if is_new else 'red')
+
+    digraph.attr('node', shape='doublecircle')
+    for i in range(1, len(self._proc_con_memory.keys())):
+      node1 = list(self._proc_con_memory.keys())[i - 1]
+      node2 = list(self._proc_con_memory.keys())[i]
+
+      digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='blue')
+
+    digraph.view()
+    return
     
 s = ProcSleuth('excel.exe')
 s.run()
-for k, v in s._proc_con_memory.items():
-  print(k, v)
-  
+s.graph_con_mem(outfile="graph")
+
