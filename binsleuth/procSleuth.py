@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 import os
 import psutil
 from datetime import datetime
@@ -24,9 +24,8 @@ class ProcSleuth:
     ''' Set the current state of process list '''
     
     process_list = []
-    for process_id in psutil.pids():
+    for temp_process in psutil.process_iter():
       try:
-        temp_process = psutil.Process(process_id)
         process_list.append(temp_process)
         self._process_memory[process_id] = temp_process.name()
         self._connection_memory[temp_process.name()] = temp_process.connections()
@@ -41,11 +40,11 @@ class ProcSleuth:
     assert self._lock_proc, "No process locked"
     
     self._proc_cons.extend(self._lock_proc.connections())
-    self._proc_children.extend(self._lock_proc.children(recursive=True))
+    self._proc_children.append(self._lock_proc.children(recursive=True))
     try: self._proc_mem_map.extend(self._lock_proc.mem_maps())
     except: pass
     
-  def print_change(self, previous_process_list):
+  def monitor_processes(self, previous_process_list):
     
     ''' Print changes to process list to stdout '''
     
@@ -104,19 +103,50 @@ class ProcSleuth:
       
       self._monitor_network_cons()
       self._monitor_file_io()
+      self._monitor_children()
       
     return 
 
     
+  def process_exits(self):
     
+    ''' checks if the process is still running 
+      return boolean
+    '''
+    
+    if psutil.pid_exists(self._lock_proc.pid):
+      try:
+        if self._lock_proc.name() == psutil.Process(self._lock_proc.pid).name() and psutil.Process(self._lock_proc.pid).status() == 'running':
+          return True
+      except: pass
+      
+    for proc in psutil.process_iter():
+      try:
+        if self._lock_proc.name().lower() == proc.name().lower():
+          self._lock_proc = psutil.Process(proc.pid)
+          return True
+      except: return False
+    return False
+  
+  
+  def _terminate(self):
+    
+    for child in self._proc_children:
+      child.terminate()
+    dead, alive = psutil.wait_procs(self._proc_children, timeout=3)
+    for kiddie in alive:
+      kiddie.kill()
+
    
   def _monitor_file_io(self):
     
     matched = 0
-    if not psutil.pid_exists(self._lock_proc.pid):
+    
+    if not self.process_exits():
+      self._terminate()
       self._go = False
       return
-    
+      
     try: cur_files = psutil.Process(self._lock_proc.pid).open_files()
     except:
       self._go = False
@@ -160,10 +190,12 @@ class ProcSleuth:
   def _monitor_network_cons(self):
     
     matched = 0
-    # connection info
-    if not psutil.pid_exists(self._lock_proc.pid):
+
+    if not self.process_exits():
+      self._terminate()
       self._go = False
       return
+      
     try: cur_cons = psutil.Process(self._lock_proc.pid).connections()
     except:
       self._go = False
@@ -202,13 +234,28 @@ class ProcSleuth:
     self._proc_cons = cur_cons
  
  
+  def _monitor_children(self):
+    
+    assert self._lock_proc, "No process locked"
+ 
+    if not self.process_exits():
+      self._terminate()
+      self._go = False
+      return
+    child_state = psutil.Process(self._lock_proc.pid).children(recursive=True)
+    
+    try: last = self._proc_children[-1]
+    except: last = []
+    if not (last == child_state):
+      self._proc_children.append(child_state)
+ 
   def run(self):
     
     ''' Loop to collect process state, check for not-allowed, and print changes to screen'''
     
     init = self.set_state()
     while self._go:
-      init = self.print_change(init)
+      init = self.monitor_processes(init)
     self._set_proc_state()
     self._monitor()
     return
@@ -233,22 +280,31 @@ class ProcSleuth:
       blue edge: time travel
     '''
     digraph = Digraph('Network_Connections', filename=outfile)
-    digraph.attr(rankdir="TD")
+    digraph.attr(rankdir='TB')
     for k, v in self._proc_con_memory.items():
-      digraph.attr('node', shape='doublecircle')
+      digraph.attr('node', shape='doublecircle', color='black')
       digraph.node(self.format_time(k))
       
       for c in v:        
         con = c[0]
         is_new = c[1]
-        digraph.attr('node', shape='circle')
-        data = 'Src {}\tPort {} \n\nDest {}\tPort {} \n\nFamily {} \n\nStatus {}'.format(con.laddr[0], con.laddr[1], con.raddr[0], con.raddr[1], str(con.family), con.status)
-        digraph.edge(self.format_time(k), data , color='green' if is_new else 'red')
+        
+        if con.status == 'NONE':
+          digraph.attr('node', shape='square', color='cyan')
+          data = 'laddr {}\tport {} \nfamily {} \nstatus {}'.format(con.laddr[0], con.laddr[1], str(con.family), con.status)
+          digraph.edge(self.format_time(k), data , weight='5', color='green' if is_new else 'red')
+        
+        else:
+          digraph.attr('node', shape='circle', color='black')
+          data = 'laddr {}\tport {} \nraddr {}\tport {} \nfamily {} \nstatus {}'.format(con.laddr[0], con.laddr[1], con.raddr[0], con.raddr[1], str(con.family), con.status)
+          digraph.edge(self.format_time(k), data , weight='5', color='green' if is_new else 'red')
 
-    digraph.attr('node', shape='doublecircle')
+    digraph.attr('node', shape='doublecircle', color='black')
+    sorted_memory = sorted(self._proc_con_memory.keys())
     for i in range(1, len(self._proc_con_memory.keys())):
-      node1 = list(self._proc_con_memory.keys())[i - 1]
-      node2 = list(self._proc_con_memory.keys())[i]
+      
+      node1 = sorted_memory[i - 1]
+      node2 = sorted_memory[i]
 
       digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='blue')
 
@@ -267,30 +323,35 @@ class ProcSleuth:
       purple edge: time travel
     '''
     digraph = Digraph('File_Operation', filename=outfile)
-    digraph.attr(rankdir="TD")
+    digraph.attr(rankdir='TB')
     for k, v in self._file_memory.items():
       digraph.attr('node', shape='doublecircle')
       digraph.node(self.format_time(k))
       
       for f in v:
-        file = f[0]
+        file_data = f[0]
         is_new = f[1]
         digraph.attr('node', shape='circle')
-        try: data = '{}\nMode {}\nFlags{}'.format(str(file.path).replace(':', '[colon]'), str(file.mode), str(file.flags))
-        except: data = '{}'.format(str(file.path).replace(':', '[colon]').replace('\\', '/'))
+        try: data = '{}\nmode {}\nflags {}\nposition {}'.format(str(file_data.path).replace(':', '[colon]'), str(file_data.mode), str(file_data.flags), str(file_data.position))
+        except: data = '{}'.format(str(file_data.path).replace(':', '[colon]').replace('\\', '/'))
         digraph.edge(self.format_time(k), data, color='green' if is_new else 'red')
     
     digraph.attr('node', shape='doublecircle')
+    sorted_memory = sorted(self._file_memory.keys())
     for i in range(1, len(self._file_memory.keys())):
-      node1 = list(self._file_memory.keys())[i - 1]
-      node2 = list(self._file_memory.keys())[i]
-
-      digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='purple')
       
+      node1 = sorted_memory[i - 1]
+      node2 = sorted_memory[i]
+      
+      digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='purple')
     digraph.render(view=view)
     return 
-
-s = ProcSleuth('excel.exe')
+    
+if os.name == 'nt': s = ProcSleuth('slack.exe')
+else: s = ProcSleuth('firefox-esr')
 s.run()
+# for k,v in s._file_memory.items():
+# print(k,v)
 s.graph_con_mem(outfile="graph")
 s.graph_file_memory(outfile="filegraph")
+print(s._proc_children)
