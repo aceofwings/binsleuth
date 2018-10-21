@@ -18,6 +18,7 @@ class ProcSleuth:
     self._proc_con_memory = {}
     self._file_io = []
     self._file_memory = {}
+    self._proc_children_memory = {}
   
   def set_state(self):
   
@@ -105,6 +106,7 @@ class ProcSleuth:
       self._monitor_file_io()
       self._monitor_children()
       
+      
     return 
 
     
@@ -131,12 +133,14 @@ class ProcSleuth:
   
   def _terminate(self):
     
-    for child in self._proc_children:
-      child.terminate()
-    dead, alive = psutil.wait_procs(self._proc_children, timeout=3)
-    for kiddie in alive:
-      kiddie.kill()
-
+    if self._proc_children:
+      for child in self._proc_children[-1]:
+        try: child.terminate()
+        except: pass
+      dead, alive = psutil.wait_procs(self._proc_children[-1], timeout=3)
+      for kiddie in alive:
+        try: kiddie.kill()
+        except: pass
    
   def _monitor_file_io(self):
     
@@ -242,12 +246,45 @@ class ProcSleuth:
       self._terminate()
       self._go = False
       return
-    child_state = psutil.Process(self._lock_proc.pid).children(recursive=True)
+      
+    try: child_state = [proc for proc in psutil.Process(self._lock_proc.pid).children(recursive=True)]
+    except:
+      self._go = False
+      return
     
-    try: last = self._proc_children[-1]
-    except: last = []
-    if not (last == child_state):
-      self._proc_children.append(child_state)
+    matched = 0
+    
+    for new_child in child_state:
+      for old_child in self._proc_children:
+        if new_child == old_child:
+          matched = 1
+          break
+        
+      if not matched:
+        timestamp = datetime.now()
+        try: self._proc_children_memory[timestamp].extend([(new_child, True)])
+        except:
+          self._proc_children_memory[timestamp] = []
+          self._proc_children_memory[timestamp].extend([(new_child, True)])
+      matched = 0
+    matched = 0
+    
+    for old_child in self._proc_children:
+      for new_child in child_state:
+        if new_child == old_child:
+          matched = 1
+          break
+        
+      if not matched:
+        timestamp = datetime.now()
+        try: self._proc_children_memory[timestamp].extend([(old_child, False)])
+        except:
+          self._proc_children_memory[timestamp] = []
+          self._proc_children_memory[timestamp].extend([(old_child, False)])
+      matched = 0
+    
+    self._proc_children = child_state
+ 
  
   def run(self):
     
@@ -267,91 +304,78 @@ class ProcSleuth:
     '''
     return '{}-{}-{} {}.{}.{}.{}'.format(str(time.year), str(time.month), str(time.day), str(time.hour), str(time.minute), str(time.second), str(time.microsecond))
 
+
+  def _data_hub(self, type, object_field, digraph):
+    
+    if type == 'file':
+      try: data = '{}\nmode {}\nflags {}\nposition {}'.format(str(object_field.path).replace(':', '[colon]'), str(object_field.mode), str(object_field.flags), str(object_field.position))
+      except: data = '{}'.format(str(object_field.path).replace(':', '[colon]').replace('\\', '/'))
   
-  def graph_con_mem(self, outfile='net_connections', view=False):
+    elif type == 'con':
+      if object_field.status == 'NONE':
+        digraph.attr('node', shape='square', color='cyan')
+        data = 'laddr {}\tport {} \nfamily {} \nstatus {}'.format(object_field.laddr[0], object_field.laddr[1], str(object_field.family), object_field.status)
+      
+      else:
+        digraph.attr('node', shape='circle', color='black')
+        data = 'laddr {}\tport {} \nraddr {}\tport {} \nfamily {} \nstatus {}'.format(object_field.laddr[0], object_field.laddr[1], object_field.raddr[0], object_field.raddr[1], str(object_field.family), object_field.status)
+      
+    elif type == 'child':
+      
+      data = '{}'.format(str(object_field))
+      
+    else:
+      assert False, "Invalid type error at hub"
+    
+    return data
+     
+  def graph_memory(self, type, memory, fast_ugly=False, outfile='graphSleuth', view=False):
     
     '''
-      create a pdf graph mapping network connections to times
+      create a pdf graph mapping memory to times
       :outfile: the filename of saved graph
       :view: if True, pop open graph when done
       
-      green edge: new connection
-      red edge: connection end
-      blue edge: time travel
+      green edge: creation/open
+      red edge: destruction/close
+      purple edge: time travel
     '''
-    digraph = Digraph('Network_Connections', filename=outfile)
+    digraph = Digraph(type, filename=outfile)
     digraph.attr(rankdir='TB')
-    for k, v in self._proc_con_memory.items():
+    if fast_ugly: digraph.attr(splines='line')
+    for k, v in memory.items():
       digraph.attr('node', shape='doublecircle', color='black')
       digraph.node(self.format_time(k))
       
-      for c in v:        
-        con = c[0]
-        is_new = c[1]
-        
-        if con.status == 'NONE':
-          digraph.attr('node', shape='square', color='cyan')
-          data = 'laddr {}\tport {} \nfamily {} \nstatus {}'.format(con.laddr[0], con.laddr[1], str(con.family), con.status)
-          digraph.edge(self.format_time(k), data , weight='5', color='green' if is_new else 'red')
-        
-        else:
-          digraph.attr('node', shape='circle', color='black')
-          data = 'laddr {}\tport {} \nraddr {}\tport {} \nfamily {} \nstatus {}'.format(con.laddr[0], con.laddr[1], con.raddr[0], con.raddr[1], str(con.family), con.status)
-          digraph.edge(self.format_time(k), data , weight='5', color='green' if is_new else 'red')
-
-    digraph.attr('node', shape='doublecircle', color='black')
-    sorted_memory = sorted(self._proc_con_memory.keys())
-    for i in range(1, len(self._proc_con_memory.keys())):
-      
-      node1 = sorted_memory[i - 1]
-      node2 = sorted_memory[i]
-
-      digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='blue')
-
-    digraph.render(view=view)
-    return
-    
-  def graph_file_memory(self, outfile='file_operations', view=False):
-    
-    '''
-      create a pdf graph mapping file operations to times
-      :outfile: the filename of saved graph
-      :view: if True, pop open graph when done
-      
-      green edge: file accessed
-      red edge: file close
-      purple edge: time travel
-    '''
-    digraph = Digraph('File_Operation', filename=outfile)
-    digraph.attr(rankdir='TB')
-    for k, v in self._file_memory.items():
-      digraph.attr('node', shape='doublecircle')
-      digraph.node(self.format_time(k))
-      
       for f in v:
-        file_data = f[0]
+        if not f[0]: continue
         is_new = f[1]
-        digraph.attr('node', shape='circle')
-        try: data = '{}\nmode {}\nflags {}\nposition {}'.format(str(file_data.path).replace(':', '[colon]'), str(file_data.mode), str(file_data.flags), str(file_data.position))
-        except: data = '{}'.format(str(file_data.path).replace(':', '[colon]').replace('\\', '/'))
+        digraph.attr('node', shape='circle', color='black')
+        data = self._data_hub(type, f[0], digraph)
         digraph.edge(self.format_time(k), data, color='green' if is_new else 'red')
     
-    digraph.attr('node', shape='doublecircle')
-    sorted_memory = sorted(self._file_memory.keys())
-    for i in range(1, len(self._file_memory.keys())):
+    digraph.attr('node', shape='doublecircle', color='black')
+    sorted_memory = sorted(memory.keys())
+    for i in range(1, len(memory.keys())):
       
       node1 = sorted_memory[i - 1]
       node2 = sorted_memory[i]
       
       digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='purple')
     digraph.render(view=view)
-    return 
+    return
+    
     
 if os.name == 'nt': s = ProcSleuth('slack.exe')
 else: s = ProcSleuth('firefox-esr')
 s.run()
-# for k,v in s._file_memory.items():
-# print(k,v)
-s.graph_con_mem(outfile="graph")
-s.graph_file_memory(outfile="filegraph")
-print(s._proc_children)
+s.graph_memory('con', s._proc_con_memory, outfile='connections')
+s.graph_memory('file', s._file_memory, outfile='files')
+s.graph_memory('child', s._proc_children_memory, outfile='children')
+
+#for k,v in s._proc_children_memory.items():
+#  print(k,v)
+#for k,v in s._file_memory.items():
+#  print(k,v)
+#for k,v in s._proc_con_memory.items():
+#  print(k,v)
