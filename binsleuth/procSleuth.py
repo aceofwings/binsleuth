@@ -272,7 +272,7 @@ class ProcSleuth:
           
       if not matched:
         timestamp = datetime.now()
-        self._proc_con_memory[new_con] = {"start time": timestamp}
+        self._proc_con_memory[new_con] = {"start time": timestamp, "end time": "???"}
       matched = 0
     matched = 0
     
@@ -323,7 +323,7 @@ class ProcSleuth:
         timestamp = datetime.now()
         # a custom object is created so we dont need to handle the termination propagating to all past states of a process
         # (we wont be able to read this data after we send a term sig to the process)
-        self._proc_children_memory[new_child] = {"start time": timestamp, "exe": new_child.exe(), "open files": new_child.open_files(), "net cons": new_child.connections()}
+        self._proc_children_memory[new_child] = {"start time": timestamp, "end time": "???", "exe": new_child.exe(), "open files": new_child.open_files(), "net cons": new_child.connections()}
       matched = 0
     matched = 0
     
