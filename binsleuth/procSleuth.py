@@ -412,11 +412,11 @@ class ProcSleuth:
                       "name": "Remote host",
                       "children": [
                         {
-                          "name": "Address: " + str(con.raddr.ip) if con.raddr else "???",
+                          "name": "Address: " + (str(con.raddr.ip) if con.raddr else "???"),
                           "self.SIZE": self.SIZE
                         },
                         {
-                          "name": "Port: " + str(con.laddr.port) if con.raddr else "???",
+                          "name": "Port: " + (str(con.laddr.port) if con.raddr else "???"),
                           "self.SIZE": self.SIZE
                         }
                       ]
@@ -541,7 +541,7 @@ class ProcSleuth:
                       "self.SIZE": self.SIZE
                     },
                     {
-                      "name": "Duration: " + str(end - start) if not isinstance(start, str) and not isinstance(end, str) else "???",
+                      "name": "Duration: " + (str(end - start) if not isinstance(start, str) and not isinstance(end, str) else "???"),
                       "self.SIZE": self.SIZE
                     }
                   ]
@@ -615,7 +615,7 @@ class ProcSleuth:
           
           con_items.append(
             {
-              "name": "Connection    Duration: " + str(end - start) if not isinstance(start, str) and not isinstance(end, str) else "???",
+              "name": "Connection    Duration: " + (str(end - start) if not isinstance(start, str) and not isinstance(end, str) else "???"),
               "children": [
                 {
                   "name": "Status: " + str(con.status),
@@ -646,11 +646,11 @@ class ProcSleuth:
                   "name": "Remote host",
                   "children": [
                     {
-                      "name": "Address: " + str(con.raddr.ip) if con.raddr else "???",
+                      "name": "Address: " + (str(con.raddr.ip) if con.raddr else "???"),
                       "self.SIZE": self.SIZE
                     },
                     {
-                      "name": "Port: " + str(con.laddr.port) if con.raddr else "???",
+                      "name": "Port: " + (str(con.laddr.port) if con.raddr else "???"),
                       "self.SIZE": self.SIZE
                     }
                   ]
