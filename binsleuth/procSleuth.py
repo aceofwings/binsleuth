@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+
 import os
 import psutil
+import json
 from datetime import datetime
-from graphviz import Source, Digraph
-
+from report import Report
+  
 class ProcSleuth:
 
   def __init__(self, exe=None):
@@ -11,6 +13,10 @@ class ProcSleuth:
     self._process_memory = {} 
     self._go = True
     self._exe = exe
+    self._cmdline = None
+    self._create_time = None
+    self._context_switch = None
+    self._cpu_times = None
     self._lock_proc = None
     self._proc_cons = []
     self._proc_children = []
@@ -19,10 +25,21 @@ class ProcSleuth:
     self._file_io = []
     self._file_memory = {}
     self._proc_children_memory = {}
+    
+    self.SIZE = 300 
+    # json data forms
+    self._file_report =[]
+    self._con_report = []
+    self._child_report = []
+    
   
   def set_state(self):
   
-    ''' Set the current state of process list '''
+    ''' Set the current state of process list 
+    
+      this function applies to a list of processes
+      representing the current state of all processes
+    '''
     
     process_list = []
     for temp_process in psutil.process_iter():
@@ -36,18 +53,38 @@ class ProcSleuth:
   
   def _set_proc_state(self):
   
-    ''' Set the current state of process '''
+    ''' Set the current state of process 
+    
+      this function applies to a process' state,
+      not the state of the process list
+      this functions gets called in run()
+    '''
     
     assert self._lock_proc, "No process locked"
     
     self._proc_cons.extend(self._lock_proc.connections())
-    self._proc_children.append(self._lock_proc.children(recursive=True))
+    self._proc_children.extend(self._lock_proc.children(recursive=True))
     try: self._proc_mem_map.extend(self._lock_proc.mem_maps())
     except: pass
     
   def monitor_processes(self, previous_process_list):
     
-    ''' Print changes to process list to stdout '''
+    ''' Print changes to process list to stdout 
+      this method essentially listens for the process given to ProcSleuth
+      when initialized
+      when that process is found this function will stop looping and 
+      _monitor() will begin to monitor the locked processes state
+      
+      you may think, well why do you need to keep track of past states?
+      why not just grab the process list and see if its there?
+      well thats a great question. Unfortunately, when I tried that it did not
+      work. Maybe youl will have better luck
+      
+      
+      @TODO fuzzy find process so exact name does not need to be known
+      
+      :previous_process_list: an array of Process objects 
+    '''
     
     current_process_list = self.set_state()
     matched = 0
@@ -59,14 +96,16 @@ class ProcSleuth:
           break
       if not matched:
         name = str(proc_current.name()).lower()
-        print(' +++ ' + name + ' : ' + str(proc_current.pid))        
+        print(' +++ ' + name + ' : ' + str(proc_current.pid))
         if proc_current.connections():
           print(proc_current.connections())
           
         if name == self._exe:
           print('\nHooked Process\n')
-          self._proc_con_memory[datetime.fromtimestamp(proc_current.create_time())] = []
-          self._proc_con_memory[datetime.fromtimestamp(proc_current.create_time())].extend([(c, True) for c in proc_current.connections()])
+          self._cmdline = proc_current.cmdline()
+          self._create_time = proc_current.create_time()
+          for c in proc_current.connections():
+            self._proc_con_memory[c] = {"start time": str(datetime.fromtimestamp(proc_current.create_time()))}
           self._lock_proc = proc_current
           self._go = False
         
@@ -94,7 +133,9 @@ class ProcSleuth:
  
   def _monitor(self):
     
-    ''' monitor the target process '''
+    ''' monitor the target process
+      call individual monitoring functions
+    '''
     
     assert self._lock_proc, "No process locked"
     
@@ -105,7 +146,6 @@ class ProcSleuth:
       self._monitor_network_cons()
       self._monitor_file_io()
       self._monitor_children()
-      
       
     return 
 
@@ -119,6 +159,8 @@ class ProcSleuth:
     if psutil.pid_exists(self._lock_proc.pid):
       try:
         if self._lock_proc.name() == psutil.Process(self._lock_proc.pid).name() and psutil.Process(self._lock_proc.pid).status() == 'running':
+          self._context_switch = self._lock_proc.num_ctx_switches()
+          self._cpu_times = self._lock_proc.cpu_times()
           return True
       except: pass
       
@@ -126,12 +168,18 @@ class ProcSleuth:
       try:
         if self._lock_proc.name().lower() == proc.name().lower():
           self._lock_proc = psutil.Process(proc.pid)
+          self._context_switch = self._lock_proc.num_ctx_switches()
+          self._cpu_times = self._lock_proc.cpu_times()
           return True
       except: return False
     return False
   
   
   def _terminate(self):
+    
+    ''' terminate all children on recursive child list
+      send kill sig if terminate fails
+    '''
     
     if self._proc_children:
       for child in self._proc_children[-1]:
@@ -144,18 +192,26 @@ class ProcSleuth:
    
   def _monitor_file_io(self):
     
+    ''' monitor file i/o operations performed by locked process
+    '''
+    
     matched = 0
     
+    # term if proc is kill
     if not self.process_exits():
       self._terminate()
       self._go = False
       return
       
+    # get files opened by the locked process
+    # if an error is thrown it is because the process is dead
+    # so we exit
     try: cur_files = psutil.Process(self._lock_proc.pid).open_files()
     except:
       self._go = False
       return
     
+    # if its in my current state and not in my past, its new
     for new_file in cur_files:
       for old_file in self._file_io:
         if new_file == old_file:
@@ -164,34 +220,38 @@ class ProcSleuth:
       
       if not matched:
         timestamp = datetime.now()
-        try: self._file_memory[timestamp].extend([(new_file, True)])
-        except:
-          self._file_memory[timestamp] = []
-          self._file_memory[timestamp].extend([(new_file, True)])
-        # print(' +++ ' + str(new_file))
+        # map file obj -> {}
+        self._file_memory[new_file] = {"start time": timestamp, "end time": "???"}
       
       matched = 0
     matched = 0
     
+    # if its is my past by not in my current, it ended
     for old_file in self._file_io:
       for new_file in cur_files:
-        if old_file ==new_file:
+        if old_file == new_file:
           matched = 1
           break
           
       if not matched:
         timestamp = datetime.now()
-        try: self._file_memory[timestamp].extend([(old_file, False)])
+        try: self._file_memory[old_file]["end time"] = timestamp
         except:
-          self._file_memory[timestamp] = []
-          self._file_memory[timestamp].extend([(old_file, False)])
-        # print(' --- ' + str(old_file))
+          self._file_memory[old_file]["end time"] = {"start time": "???", "end time": timestamp}
       matched = 0
       
+    # set my past state to my current state
+    # to prepare for the next call
     self._file_io = cur_files
 
 
   def _monitor_network_cons(self):
+    
+    
+    ''' monitor network connections being made by the locked
+      process
+      see _monitor_file_io for more comments
+    '''
     
     matched = 0
 
@@ -212,11 +272,7 @@ class ProcSleuth:
           
       if not matched:
         timestamp = datetime.now()
-        try: self._proc_con_memory[timestamp].extend([(new_con, True)])
-        except:
-          self._proc_con_memory[timestamp] = []
-          self._proc_con_memory[timestamp].extend([(new_con, True)])     
-        # print(' +++ ' + str(new_con))
+        self._proc_con_memory[new_con] = {"start time": timestamp}
       matched = 0
     matched = 0
     
@@ -228,11 +284,8 @@ class ProcSleuth:
           
       if not matched:
         timestamp = datetime.now()
-        try: self._proc_con_memory[timestamp].extend([(old_con, False)])
-        except:
-          self._proc_con_memory[timestamp] = []
-          self._proc_con_memory[timestamp].extend([(old_con, False)]) 
-        # print(' --- ' + str(old_con))
+        try: self._proc_con_memory[old_con]["end time"] = timestamp
+        except: self._proc_con_memory[old_con] = {"start time": "???", "end time": timestamp}
       matched = 0
     
     self._proc_cons = cur_cons
@@ -240,6 +293,12 @@ class ProcSleuth:
  
   def _monitor_children(self):
     
+  
+    ''' monitor child processes being spawned by the locked
+      process
+      see _monitor_file_io for more comments
+    '''
+ 
     assert self._lock_proc, "No process locked"
  
     if not self.process_exits():
@@ -262,10 +321,9 @@ class ProcSleuth:
         
       if not matched:
         timestamp = datetime.now()
-        try: self._proc_children_memory[timestamp].extend([(new_child, True)])
-        except:
-          self._proc_children_memory[timestamp] = []
-          self._proc_children_memory[timestamp].extend([(new_child, True)])
+        # a custom object is created so we dont need to handle the termination propagating to all past states of a process
+        # (we wont be able to read this data after we send a term sig to the process)
+        self._proc_children_memory[new_child] = {"start time": timestamp, "exe": new_child.exe(), "open files": new_child.open_files(), "net cons": new_child.connections()}
       matched = 0
     matched = 0
     
@@ -277,18 +335,461 @@ class ProcSleuth:
         
       if not matched:
         timestamp = datetime.now()
-        try: self._proc_children_memory[timestamp].extend([(old_child, False)])
-        except:
-          self._proc_children_memory[timestamp] = []
-          self._proc_children_memory[timestamp].extend([(old_child, False)])
+        try: self._proc_children_memory[old_child]["end time"] = timestamp
+        except: self._proc_children_memory[old_child] = {"start time": "???", "end time": timestamp}
       matched = 0
     
     self._proc_children = child_state
+    
+    
+  def _d3js_child(self):
  
+    ''' a function to normalize the process' child process
+      information for use by d3js and returning general json for user
+      
+    '''
+
+    final_child = []
+
+    for k,v in self._proc_children_memory.items():
+      final_child.append(
+        {
+          "name": "Child process",
+          "children": [
+            {
+              "name": "EXE: " + str(v["exe"]),
+              "self.SIZE": self.SIZE
+            },
+            {
+              "name": "Time info",
+              "children": [
+                {
+                  "name": "Start time: " + str(v["start time"]),
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "End time: " + str(v["end time"]),
+                  "self.SIZE": self.SIZE
+                }
+              ]
+            },
+            {
+              "name": "Connections",
+              "children": [
+                {
+                  "name": "Connection",
+                  "children": [
+                    {
+                      "name": "Status: " + str(con.status),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "File descriptor: " + str(con.fd),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "Socket type: " + str(con.type),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "Family: " + "IPv4" if con.family == 2 else "IPv6" if con.family == 12 else str(con.family),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "Local host",
+                      "children": [
+                        {
+                          "name": "Address: " + str(con.laddr.ip),
+                          "self.SIZE": self.SIZE
+                        },
+                        {
+                          "name": "Port: " + str(con.laddr.port),
+                          "self.SIZE": self.SIZE
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Remote host",
+                      "children": [
+                        {
+                          "name": "Address: " + str(con.raddr.ip) if con.raddr else "???",
+                          "self.SIZE": self.SIZE
+                        },
+                        {
+                          "name": "Port: " + str(con.laddr.port) if con.raddr else "???",
+                          "self.SIZE": self.SIZE
+                        }
+                      ]
+                    }
+                  ]
+                } for con in v["net cons"]
+              ]
+            },
+            {
+              "name": "File Operations",
+              "children": [
+                {
+                  "name": "File operation  ..." + str(file.path[:len(file.path)//2]),
+                  "children": [
+                    {
+                      "name": "path: " + str(file.path),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "File offset: " + str(file.position),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "Meta data",
+                      "children": [
+                        {
+                          "name": "Mode: " + str(file.mode),
+                          "self.SIZE": self.SIZE
+                        },
+                        {
+                          "name": "File descriptor: " + str(file.fd),
+                          "self.SIZE": self.SIZE
+                        },
+                        {
+                          "name": "Offset: " + str(file.position),
+                          "self.SIZE": self.SIZE
+                        },
+                        {
+                          "name": "Flags: " + str(file.flags),
+                          "self.SIZE": self.SIZE
+                        }
+                      ]
+                    } 
+                  ]
+                } for file in v["open files"]
+              ]
+            }
+          ]
+        }
+      )
+    
+    self._child_report = final_child
+  
+  def _d3js_file(self):
+      
+    ''' a function to normalize the process' file operations
+      information for use by d3js and returning general json for user
+      
+    a few different representations were explored here
+    @TODO pick the best representation for plain json
+    
+    '''
+  
+    final_file = []
+    
+    mode_file_map = {}
+    # mode_file_map = map of file open mode -> file object
+    for file_obj in self._file_memory:
+    
+      try: mode_file_map[str(file_obj.mode)].append(file_obj)
+      except:
+        mode_file_map[str(file_obj.mode)] = []
+        mode_file_map[str(file_obj.mode)].append(file_obj)
+
+    
+    root_file_map = {}
+    # root_file_map = map of root directory -> file object
+    for k, v in mode_file_map.items():
+      root_file_map[k] = {}
+      
+      for file in v:
+        dir = file.path.split('/')[1]
+        
+        try: root_file_map[k][dir].append(file)
+        except:
+          root_file_map[k][dir] = []
+          root_file_map[k][dir].append(file)
+        
+    for k, v in root_file_map.items():
+      # k is mode
+      # v is root dir -> [file object, file obj..]
+      root = []
+      for val in v:
+        # val is /etc, /usr etc
+        file_io = []
+        for file in v[val]:
+      
+          start = self._file_memory[file]["start time"]
+          end = self._file_memory[file]["end time"]
+          
+          file_io.append(
+            {
+              "name": "File operation  ..." + str(file.path[:len(file.path)//2]) + "...     Duration: " + (str(end - start) if not isinstance(start, str) and not isinstance(end, str) else "???"),
+              "children": [
+                {
+                  "name": "path: " + str(file.path),
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "File offset: " + str(file.position),
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "Time info",
+                  "children": [
+                    {
+                      "name": "Access time: " + str(start),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "Close time: " + str(end),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "Duration: " + str(end - start) if not isinstance(start, str) and not isinstance(end, str) else "???",
+                      "self.SIZE": self.SIZE
+                    }
+                  ]
+                }
+              ]
+            }
+          )
+      
+        root.append(
+          {
+            "name": "Root directory: /" + str(val) + "    Operation Count: " + str(len(v[val])),
+            "children": file_io
+          }        
+        )
+      
+      final_file.append(
+        {
+          "name": "Mode: " + str(k),
+          "children": root
+        }
+      )
+      
+    self._file_report = final_file
+      
+      
+  def _d3js_con(self):
+    
+    ''' a function to normalize the process' network connection
+      information for use by d3js and returning general json for user
+      
+    a few different representations were explored here
+    @TODO pick the best representation for plain json
+    
+    '''
+    
+    final_con = []
+    
+    family_con_map = {}
+    # map family -> connections
+    for k, v in self._proc_con_memory.items():
+      
+      try: family_con_map[k.family].append(k)
+      except:
+        family_con_map[k.family] = []
+        family_con_map[k.family].append(k)
+    
+    
+    socket_con_map = {}
+    # map socket -> connections
+    for k, v in family_con_map.items():
+      socket_con_map[k] = {}
+      
+      for con in v:
+        try: socket_con_map[k][str(con.laddr.ip) + ':' + str(con.laddr.port)].append(con)
+        except:
+          socket_con_map[k][str(con.laddr.ip) + ':' + str(con.laddr.port)] = []
+          socket_con_map[k][str(con.laddr.ip) + ':' + str(con.laddr.port)].append(con)    
+    
+    for k, v in socket_con_map.items():
+      # k is socket
+      # v is [con]
+      
+      outer_con = []
+      for val in v:
+        # val is con
+        con_items = []
+        for con in v[val]:
+        
+          start = self._proc_con_memory[con]["start time"]
+          end = self._proc_con_memory[con]["end time"]
+          
+          con_items.append(
+            {
+              "name": "Connection    Duration: " + str(end - start) if not isinstance(start, str) and not isinstance(end, str) else "???",
+              "children": [
+                {
+                  "name": "Status: " + str(con.status),
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "File descriptor: " + str(con.fd),
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "Socket type: " + str(con.type),
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "Local host",
+                  "children": [
+                    {
+                      "name": "Address: " + str(con.laddr.ip),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "Port: " + str(con.laddr.port),
+                      "self.SIZE": self.SIZE
+                    }
+                  ]
+                },
+                {
+                  "name": "Remote host",
+                  "children": [
+                    {
+                      "name": "Address: " + str(con.raddr.ip) if con.raddr else "???",
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "Port: " + str(con.laddr.port) if con.raddr else "???",
+                      "self.SIZE": self.SIZE
+                    }
+                  ]
+                },
+                {
+                  "name": "Time info",
+                  "children": [
+                    {
+                      "name": "Start time: " + str(start),
+                      "self.SIZE": self.SIZE
+                    },
+                    {
+                      "name": "End time: " + str(end),
+                      "self.SIZE": self.SIZE
+                    }
+                  ]
+                }
+              ]
+            }
+          )
+      
+        outer_con.append(
+          {
+            "name": "Socket: " + str(val) + "    Connection Count: " + str(len(v[val])),
+            "children": con_items
+          }
+        )
+    
+      final_con.append(
+        {
+          "name": "Family: " + "IPv4" if k == 2 else "IPv6" if k == 12 else str(k),
+          "children": outer_con
+        }
+      )
+
+    self._con_report = final_con
+    
+    
+
+  def _d3js_data_hub(self):
+     
+    ''' this function pieces together a dynamic report into one html file
+      the relationships are all very simple parent -> child relationships
+      allowing us flexability 
+      
+      the Report handles the creation of the semi-self-contained html
+      file
+      
+      @TODO we can pull d3js package into the enviroment making it a fully
+        self-contained html file
+        currently it reaches out to the d3js server for libraries
+    
+    '''
+     
+    self._d3js_file()
+    self._d3js_con()
+    self._d3js_child()
+     
+    report = {
+      "name": "Report",
+      "children": [
+        {
+          "name": "Dynamic Operations",
+          "children": [
+            {
+              "name": "EXE: " + str(self._exe)
+            },
+            {
+              "name": "Command line args",
+              "children": [
+                {
+                  "name": str(cmd),
+                  "self.SIZE": self.SIZE
+                } for cmd in self._cmdline
+              ]
+            },
+            {
+              "name": "Create time: " +  str(datetime.fromtimestamp(self._create_time)),
+              "self.SIZE": self.SIZE
+            },
+            {
+              "name": "Context switch counts",
+              "children": [
+                {
+                  "name": "Voluntary: " + str(self._context_switch.voluntary),
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "Involuntary: " + str(self._context_switch.involuntary),
+                  "self.SIZE": self.SIZE
+                }
+              ]
+            },
+            {
+              "name": "CPU times",
+              "children": [
+                {
+                  "name": "User: " + str(self._cpu_times.user) + " seconds",
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "System: " + str(self._cpu_times.system) + " seconds",
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "Children system: " + str(self._cpu_times.children_system) + " seconds",
+                  "self.SIZE": self.SIZE
+                },
+                {
+                  "name": "Children user: " + str(self._cpu_times.children_user) + " seconds",
+                  "self.SIZE": self.SIZE
+                }
+              ]
+            },
+            {
+              "name": "File Operations",
+              "children": self._file_report
+            },
+            {
+              "name": "Network Connections",
+              "children": self._con_report
+            },
+            {
+              "name": "Child Processes",
+              "children": self._child_report
+            }
+          ]
+        }
+      ]
+    }
  
+    d3 = Report(report, build_d3js=True)
+    
+  
   def run(self):
     
-    ''' Loop to collect process state, check for not-allowed, and print changes to screen'''
+    ''' waits for process to be hooked in monitor_processes
+      then waits for process to terminate in _monitor
+    '''
     
     init = self.set_state()
     while self._go:
@@ -297,85 +798,8 @@ class ProcSleuth:
     self._monitor()
     return
     
-  def format_time(self, time):
-  
-    ''' graphviz keeps tying to turn colons into ip:port relationship
-      so this method prevents that
-    '''
-    return '{}-{}-{} {}.{}.{}.{}'.format(str(time.year), str(time.month), str(time.day), str(time.hour), str(time.minute), str(time.second), str(time.microsecond))
-
-
-  def _data_hub(self, type, object_field, digraph):
-    
-    if type == 'file':
-      try: data = '{}\nmode {}\nflags {}\nposition {}'.format(str(object_field.path).replace(':', '[colon]'), str(object_field.mode), str(object_field.flags), str(object_field.position))
-      except: data = '{}'.format(str(object_field.path).replace(':', '[colon]').replace('\\', '/'))
-  
-    elif type == 'con':
-      if object_field.status == 'NONE':
-        digraph.attr('node', shape='square', color='cyan')
-        data = 'laddr {}\tport {} \nfamily {} \nstatus {}'.format(object_field.laddr[0], object_field.laddr[1], str(object_field.family), object_field.status)
-      
-      else:
-        digraph.attr('node', shape='circle', color='black')
-        data = 'laddr {}\tport {} \nraddr {}\tport {} \nfamily {} \nstatus {}'.format(object_field.laddr[0], object_field.laddr[1], object_field.raddr[0], object_field.raddr[1], str(object_field.family), object_field.status)
-      
-    elif type == 'child':
-      
-      data = '{}'.format(str(object_field))
-      
-    else:
-      assert False, "Invalid type error at hub"
-    
-    return data
-     
-  def graph_memory(self, type, memory, fast_ugly=False, outfile='graphSleuth', view=False):
-    
-    '''
-      create a pdf graph mapping memory to times
-      :outfile: the filename of saved graph
-      :view: if True, pop open graph when done
-      
-      green edge: creation/open
-      red edge: destruction/close
-      purple edge: time travel
-    '''
-    digraph = Digraph(type, filename=outfile)
-    digraph.attr(rankdir='TB')
-    if fast_ugly: digraph.attr(splines='line')
-    for k, v in memory.items():
-      digraph.attr('node', shape='doublecircle', color='black')
-      digraph.node(self.format_time(k))
-      
-      for f in v:
-        if not f[0]: continue
-        is_new = f[1]
-        digraph.attr('node', shape='circle', color='black')
-        data = self._data_hub(type, f[0], digraph)
-        digraph.edge(self.format_time(k), data, color='green' if is_new else 'red')
-    
-    digraph.attr('node', shape='doublecircle', color='black')
-    sorted_memory = sorted(memory.keys())
-    for i in range(1, len(memory.keys())):
-      
-      node1 = sorted_memory[i - 1]
-      node2 = sorted_memory[i]
-      
-      digraph.edge(self.format_time(node1), self.format_time(node2), label=str(node2 - node1), color='purple')
-    digraph.render(view=view)
-    return
-    
-    
-if os.name == 'nt': s = ProcSleuth('slack.exe')
+if os.name == 'nt': s = ProcSleuth('excel.exe')
 else: s = ProcSleuth('firefox-esr')
 s.run()
-s.graph_memory('con', s._proc_con_memory, outfile='connections')
-s.graph_memory('file', s._file_memory, outfile='files')
-s.graph_memory('child', s._proc_children_memory, outfile='children')
-
-#for k,v in s._proc_children_memory.items():
-#  print(k,v)
-#for k,v in s._file_memory.items():
-#  print(k,v)
-#for k,v in s._proc_con_memory.items():
-#  print(k,v)
+# this call creates the report
+s._d3js_data_hub()
