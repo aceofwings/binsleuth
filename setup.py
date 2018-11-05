@@ -22,15 +22,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 # to specify any version within a minor or major change use ~= eg virtualenv~= 3.5.0
 # to specify a package greater then the stated version use <=
 install_requires = [
-'angr==7.8.8.1',
-'pyvex==7.8.8.1',
-'cle==7.8.8.1',
-'capstone==3.0.5rc2',
-'pyelftools==0.24',
-'pycparser==2.18',
-'cffi==1.11.5',
-'angr-utils==0.4.0',
-'pyorient',
+'angr==8.18.10.25',
 ]
 
 setup(
