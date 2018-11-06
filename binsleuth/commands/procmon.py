@@ -9,6 +9,8 @@ logger =  logging.getLogger(__name__)
 
 class ProcMonCommand(BaseCommand):
 
+    description = "Dynamically Monitor the process"
+
     def __init__(self,args):
         super(ProcMonCommand,self).__init__(args)
         self.config = Config()

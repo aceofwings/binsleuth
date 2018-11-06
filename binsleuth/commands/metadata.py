@@ -9,6 +9,9 @@ logger =  logging.getLogger(__name__)
 
 class MetaDataCommand(BaseCommand):
 
+
+    description = "Fetch the the size and other attributes of the file"
+
     def __init__(self,args):
         super(MetaDataCommand,self).__init__(args)
         self.config = Config()

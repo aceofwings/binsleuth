@@ -9,12 +9,12 @@ def main():
 
   static = StaticAnalyses('fauxware')
   static._d3js_hub()
-  
-  dynamic = ProcSleuth('firefox-esr')
-  dynamic.run() 
+
+  dynamic = ProcSleuth('firefox')
+  dynamic.run()
   dynamic._d3js_data_hub()
- 
- 
+
+
   report = {
     "name": "Binsleuth Report - " + str(datetime.now()),
     "children": [
@@ -22,10 +22,9 @@ def main():
         dynamic._report
     ]
   }
-  
+
   Report(report, build_d3js=True, build_json=True)
-  
-  
+
+
 if __name__ == '__main__':
-    main()  
-  
+    main()
