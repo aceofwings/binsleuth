@@ -20,7 +20,7 @@ class MetaDataCommand(BaseCommand):
 
         md = Engine.build_operation(self.config, FileMetaData)
         md.run()
-        
+
     def extend_argparse(self,parser):
         """
         Overide to add extra arguments(see arparse docs)
