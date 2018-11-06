@@ -36,7 +36,14 @@ project directory or location as you see fit.
 
     source ~/project/virtualenvs/binsleuth/bin/activate
 
+Due to some packages being out of date on pypi, directly download them from git
 
+.. code-block:: bash
+
+    git clone https://github.com/axt/bingraphvis
+    pip install -e ./bingraphvis
+    git clone https://github.com/axt/angr-utils
+    pip install -e ./angr-utils
 
 
 Installation
