@@ -30,7 +30,7 @@ project directory or location as you see fit.
 
     git clone https://github.com/aceofwings/binsleuth.git
 
-    virtualenv -p python ~/project/virtualenvs/binsleuth
+    virtualenv -p python3 ~/project/virtualenvs/binsleuth
 
     #activate the environment
 
