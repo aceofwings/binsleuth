@@ -36,7 +36,7 @@ project directory or location as you see fit.
 
     source ~/project/virtualenvs/binsleuth/bin/activate
 
-Due to some packages being out of date on pypi, directly download them from git
+Due to some packages being out of date on pypi, directly download them from gitir
 
 .. code-block:: bash
 
