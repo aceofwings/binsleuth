@@ -342,6 +342,7 @@ class ProcSleuth:
         timestamp = datetime.now()
         try: self._proc_children_memory[old_child]["end time"] = timestamp
         except: self._proc_children_memory[old_child] = {"start time": "???", "end time": timestamp, "exe": "???", "open files": [], "net cons": []}
+
       matched = 0
     
     self._proc_children = child_state
@@ -798,7 +799,7 @@ class ProcSleuth:
     self._set_proc_state()
     self._monitor()
     return
-    
+
 # if os.name == 'nt': s = ProcSleuth('excel.exe')
 # else: s = ProcSleuth('firefox-esr')
 # s.run()
