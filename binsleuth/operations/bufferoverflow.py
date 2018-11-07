@@ -19,4 +19,6 @@ class BufferOverflowOperation(Operation):
 
         unconstrainedState = self.sm.unconstrained[0]
         crashing_input = unconstrainedState.posix.dumps(0)
+        prompt = state.posix.dumps(1)
+
         logger.info("BufferOverflow found " + crashing_input)

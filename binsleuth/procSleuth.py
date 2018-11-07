@@ -4,7 +4,7 @@ import os
 import psutil
 import json
 from datetime import datetime
-from report import Report
+from binsleuth.report import Report
 
 
 class ProcSleuth:

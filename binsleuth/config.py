@@ -1,6 +1,7 @@
 from binsleuth.operations.bufferoverflow import BufferOverflowOperation
 from binsleuth.operations.filemetadata import  FileMetaData
 from binsleuth.operations.cfg import ControlFlowGraph
+from binsleuth.operations.staticanalysis import StaticOperation
 
 class Config(object):
     """
@@ -8,7 +9,7 @@ class Config(object):
     framework will default to this
     """
 
-    operations = [FileMetaData, ControlFlowGraph, BufferOverflowOperation]
+    operations = [StaticOperation]
 
     """
     Can be a single string value or an array of string values

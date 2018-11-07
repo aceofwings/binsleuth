@@ -1,32 +1,33 @@
-#!/usr/bin/env python
+from binsleuth.core.operation import Operation
+import logging
 import angr
-from angr import sim_options as so
-from binsleuth.report import Report
+
+logger = logging.getLogger(__name__)
 
 
-class StaticAnalyses:
+class StaticOperation(Operation):
 
-    def __init__(self, filename):
+    project_settings = {'auto_load_libs': False}
 
-        self._project = angr.Project(filename, load_options={
-                                     'auto_load_libs': False})
-
-        assert self._project, "Failed to create project"
-
-        self._cfg = self._project.analyses.CFG(fail_fast=True)
-        self._function_dict = dict(self._project.kb.functions)
-        print(self._function_dict)
-        self._report = {}
-
-        self.arch = self._project.arch
+    def __init__(self, project, config, **kwargs):
+        super().__init__(project,**kwargs)
+        self._cfg = self.project.analyses.CFG(fail_fast=True)
+        self._function_dict = dict(self.project.kb.functions)
+        self.arch = self.project.arch
+        self.hard_coded = {}
         self.SIZE = 300
 
-        self.hard_coded = {}
+
+    def run(self):
+        logger.info("Beginning Static Analysis")
         self.potential_hard_coded()
+        self._d3js_functions()
+        self._d3js_hub()
+
 
     def buffer_overflow(self):
 
-        sim = self._project.factory.simulation_manager(save_unconstrained=True)
+        sim = self.project.factory.simulation_manager(save_unconstrained=True)
 
         while len(sim.unconstrained) == 0:
             sim.step()
@@ -42,11 +43,11 @@ class StaticAnalyses:
           report values that lead to unmapped memory
           TODO: this is buggy on some binaries, I would avoid it for now
         '''
-
-        state = self._project.factory.entry_state(
+        logger.info("Finding unmapped memory")
+        state = self.project.factory.entry_state(
             add_options={angr.options.STRICT_PAGE_ACCESS})
 
-        sim = self._project.factory.simulation_manager(state)
+        sim = self.project.factory.simulation_manager(state)
 
         sim.explore()
 
@@ -65,7 +66,7 @@ class StaticAnalyses:
         return (errors, valids)
 
     def potential_hard_coded(self):
-
+        logger.info("Finding Potential Hard coded constants")
         fun_addrs = []
         for key in self._function_dict:
             try:
@@ -75,7 +76,7 @@ class StaticAnalyses:
                 pass
 
         for address in fun_addrs:
-            pg = self._project.factory.simgr()
+            pg = self.project.factory.simgr()
             pg.explore(find=address)
             if pg.found:
                 potential = pg.found[0].posix.dumps(0)
@@ -87,10 +88,10 @@ class StaticAnalyses:
         shellcode = bytes.fromhex(
             "6a68682f2f2f73682f62696e89e331c96a0b5899cd80")
 
-        entry_state = self._project.factory.entry_state(
+        entry_state = self.project.factory.entry_state(
             add_options={so.REVERSE_MEMORY_NAME_MAP, so.TRACK_ACTION_HISTORY})
 
-        sim = self._project.factory.simulation_manager(
+        sim = self.project.factory.simulation_manager(
             entry_state, save_unconstrained=True)
 
         exploitable_state = None
@@ -152,7 +153,7 @@ class StaticAnalyses:
         final_functions = []
 
         for k, v in self._function_dict.items():
-
+            print(dir(v))
             final_functions.append(
                 {
                     "name": "Function: " + str(v.name) + " " + str(hex(k)),
@@ -217,7 +218,7 @@ class StaticAnalyses:
             "name": "Static Analysis",
             "children": [
                 {
-                    "name": "EXE: " + str(self._project.filename) + " " + str(self.arch),
+                    "name": "EXE: " + str(self.project.filename) + " " + str(self.arch),
                     "size": self.SIZE
                 },
                 {
@@ -268,12 +269,3 @@ class StaticAnalyses:
         }
 
         self._report = data
-        # report = Report(data, build_d3js=True)
-
-# s = StaticAnalyses('fauxware')
-# s.potential_hard_coded()
-# s.unmapped_memory()
-# print(s.hard_coded)
-# s.buffer_overflow()
-# s._d3js_hub()
-# s.find_unconstrainedC()
