@@ -1,6 +1,7 @@
 from binsleuth.operations.bufferoverflow import BufferOverflowOperation
 from binsleuth.operations.filemetadata import  FileMetaData
 from binsleuth.operations.cfg import ControlFlowGraph
+from binsleuth.operations.cve import CVEChecker
 
 class Config(object):
     """
@@ -8,7 +9,7 @@ class Config(object):
     framework will default to this
     """
 
-    operations = [FileMetaData, ControlFlowGraph, BufferOverflowOperation]
+    operations = [FileMetaData, ControlFlowGraph, BufferOverflowOperation, CVEChecker]
 
     """
     Can be a single string value or an array of string values
@@ -17,6 +18,7 @@ class Config(object):
     """
     file  = "./examples/fauxware"
 
+    timeframe = 1
 
     function_graph_location = "function_graphs"
 

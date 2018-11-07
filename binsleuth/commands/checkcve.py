@@ -10,14 +10,18 @@ logger = logging.getLogger(__name__)
 
 class CheckCVECommand(BaseCommand):
 
+    description = "Check linked libraries for known CVEs"
+    
     def __init__(self,args):
         super(CheckCVECommand,self).__init__(args)
         self.config = Config()
 
     def run(self,arguments):
         super(CheckCVECommand,self).run(arguments)
-        if  arguments.file is not None:
+        if arguments.file is not None:
             self.config.file = arguments.file
+        if arguments.timeframe > 1:
+            self.config.timeframe = arguments.timeframe
 
         check = Engine.build_operation(self.config,CVEChecker)
         check.run()
@@ -30,4 +34,5 @@ class CheckCVECommand(BaseCommand):
         argparser - the commands argumentparser
         """
         super(CheckCVECommand,self).extend_argparse(parser)
-        parser.add_arguement('--file', '-f', default=None, help='file to which to run the command with')
+        parser.add_argument('--file', '-f', default=None, help='file to which to run the command with')
+        parser.add_argument('--timeframe', '-t', metavar='YEARS', default=1, help='Number of years to look back to check for CVEs\nCan only go back to 2002')       
