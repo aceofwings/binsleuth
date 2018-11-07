@@ -9,7 +9,7 @@ class Config(object):
     framework will default to this
     """
 
-    operations = [StaticOperation]
+    operations = [FileMetaData]
 
     """
     Can be a single string value or an array of string values
@@ -22,3 +22,9 @@ class Config(object):
     function_graph_location = "function_graphs"
 
     loop_graph_location = ""
+
+    """ Location of templates used by template engine """
+    templates_dir = 'binsleuth/templates'
+
+    """ Generate html reports """
+    generate_reports = True
