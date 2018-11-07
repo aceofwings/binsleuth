@@ -24,7 +24,8 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 install_requires = [
 'angr==8.18.10.25',
 'angr-utils',
-'bingraphvis==0.2.0'
+'bingraphvis==0.2.0',
+'requests==2.20.0'
 ]
 
 setup(
