@@ -153,7 +153,6 @@ class StaticOperation(Operation):
         final_functions = []
 
         for k, v in self._function_dict.items():
-            print(dir(v))
             final_functions.append(
                 {
                     "name": "Function: " + str(v.name) + " " + str(hex(k)),
