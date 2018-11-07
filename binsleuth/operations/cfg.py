@@ -39,9 +39,8 @@ class ControlFlowGraph(Operation):
 
 
     def dynamic_cfg(self):
-      # cfg = project.analyses.CFGEmulated(keep_state=True)
-        cfg = self.project.analyses.CFGAccurate(keep_state=True)
-        return cfg
+       cfg = project.analyses.CFGEmulated(keep_state=True)
+       return cfg
 
 
     def graph_cfg(self,cfg, outfile):
@@ -86,7 +85,7 @@ class ControlFlowGraph(Operation):
         start_state.stack_push(0x0)
 
         with hook0(self.project):
-            cfg = self.project.analyses.CFGAccurate(fail_fast=True,
+            cfg = self.project.analyses.CFGEmulated(fail_fast=True,
                                            starts=[addr],
                                            initial_state=start_state,
                                            context_sensitivity_level=5,
