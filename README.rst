@@ -30,13 +30,20 @@ project directory or location as you see fit.
 
     git clone https://github.com/aceofwings/binsleuth.git
 
-    virtualenv -p python ~/project/virtualenvs/binsleuth
+    virtualenv -p python3 ~/project/virtualenvs/binsleuth
 
     #activate the environment
 
     source ~/project/virtualenvs/binsleuth/bin/activate
 
+Due to some packages being out of date on pypi, directly download them from gitir
 
+.. code-block:: bash
+
+    git clone https://github.com/axt/bingraphvis
+    pip install -e ./bingraphvis
+    git clone https://github.com/axt/angr-utils
+    pip install -e ./angr-utils
 
 
 Installation

@@ -42,7 +42,6 @@ class FileMetaData(Operation):
         File Size : {:.2f} {}
         Primary ID : {}
         Secondar ID : {}
-
         """.format(self.project.filename, self.size,self.maglabel,self.primaryHash, self.secondaryHash))
 
     def fileSize(self):
@@ -53,10 +52,10 @@ class FileMetaData(Operation):
 
     def getFilePrimaryHash(self):
         """
-        Hash the entire file in order to produce  a unique identifer
+        Hash the entire file in order to produce a unique identifer
         """
         hashfunc = hashlib.sha1()
-        with open(self.project.filename) as f:
+        with open(self.project.filename, 'rb') as f:
             buffer = f.read(PRIMARY_HASH_BUFFER_SIZE)
             while len(buffer) != 0:
                 hashfunc.update(buffer)
@@ -68,7 +67,7 @@ class FileMetaData(Operation):
         Hash only the first 512 bytes of a file to produce an identifer
         """
         hashfunc = hashlib.sha1()
-        with open(self.project.filename) as f:
+        with open(self.project.filename,'rb') as f:
             buffer = f.read(SECONDARY_HASH_SIZE)
             hashfunc.update(buffer)
 
