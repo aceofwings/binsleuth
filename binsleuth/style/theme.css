@@ -1,8 +1,28 @@
-
-.operation-tab{
-background-color: red
+.operation-tab {
+  background-color: red
 }
 
 .operation-header {
-  background-color: #C1CAD6
+  background-color: #C1CAD6;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+body {
+  background-color: #767B91
+}
+
+.metadata-tab {
+  background-color: #FFF;
+  border-style: solid;
+  border-width: 1px;
+}
+
+.metdata-tab > b  {
+  color: #FF9B42
+}
+
+.nav-padding{
+  padding: 20px;
+  margin-bottom: 5px;
 }

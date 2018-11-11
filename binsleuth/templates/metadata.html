@@ -8,14 +8,14 @@
 
 <div class="row">
 <div class="col-lg-6">
-  <div class="row">
-    Sha-1 Hash  - {{report.primaryHash}}
+  <div class="row metadata-tab">
+  <b> Sha-1 -</b>  {{report.primaryHash}}
   </div>
-  <div class="row">
-    Binsleuth Hash - {{report.secondaryHash}}
+  <div class="row metadata-tab">
+  <b>  Binsleuth Hash  - </b> {{report.secondaryHash}}
   </div>
-  <div class="row">
-    File Size : {{ "%.2f"|format(report.size)}} -  {{report.maglabel}}
+  <div class="row metadata-tab">
+    <b>File Size : </b>{{ "%.2f"|format(report.size)}} -  {{report.maglabel}}
   </div>
 </div>
 </div>

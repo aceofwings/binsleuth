@@ -31,20 +31,26 @@
       </div>
     </div>
 
-    <nav class="nav nav-pills">
+    <nav class="navbar nav-padding navbar-dark bg-dark">
+      <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
       {% for o in operations %}
-        <a class="nav-item nav-link active" href="#">{{o.operation_name}}</a>
+      <li class="nav-item">
+        <a class="nav-link" href="#"> {{o.operation_name}}</a>
+      </li>
       {% endfor %}
+
       {% for o in unfishedOperations %}
-        <a class="nav-item nav-link disabled" href="#">{{o.name}}</a>
+      <li class="nav-item">
+        <a class="nav-link disabled" href="#"> {{o.operate_name}}</a>
+      </li>
       {% endfor %}
+    </ul>
     </nav>
 
-
     {% for o in operations %}
-      {% with report=reports[o.obj_name] %}
-        {% include o.report_template %}
-      {% endwith %}
+    {% with report=reports[o.obj_name] %}
+    {% include o.report_template %}
+    {% endwith %}
     {% endfor %}
   </div>
 
