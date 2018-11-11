@@ -5,17 +5,16 @@
     <p>File Medata Data</p>
   </div>
 </div>
-
 <div class="row">
 <div class="col-lg-6">
   <div class="row metadata-tab">
-  <b> Sha-1 -</b>  {{report.primaryHash}}
+  <p class="indent-left"> <b> Sha-1 -</b>  {{report.primaryHash}} </p>
   </div>
   <div class="row metadata-tab">
-  <b>  Binsleuth Hash  - </b> {{report.secondaryHash}}
+   <p class="indent-left">  <b>  Binsleuth Hash  - </b> {{report.secondaryHash}} </p>
   </div>
   <div class="row metadata-tab">
-    <b>File Size : </b>{{ "%.2f"|format(report.size)}} -  {{report.maglabel}}
+  <p class="indent-left">   <b>File Size - </b>{{ "%.2f"|format(report.size)}} -  {{report.maglabel}} </p>
   </div>
 </div>
 </div>

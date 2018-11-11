@@ -18,11 +18,16 @@ body {
   border-width: 1px;
 }
 
-.metdata-tab > b  {
-  color: #FF9B42
-}
 
 .nav-padding{
   padding: 20px;
   margin-bottom: 5px;
+}
+
+b {
+  color: #2A324B;
+}
+
+.indent-left{
+  margin-left: 5px;
 }
