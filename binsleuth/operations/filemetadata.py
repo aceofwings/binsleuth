@@ -16,7 +16,9 @@ class FileMetaData(Operation):
     """
 
     project_settings = {}
-    report_template = "info.html"
+    report_template = "metadata.html"
+    obj_name = "metadata"
+    operation_name = "File Metadata"
 
     def __init__(self,project,config,**kwargs):
         self.project = project

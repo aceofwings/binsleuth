@@ -24,7 +24,8 @@ class Config(object):
     loop_graph_location = ""
 
     """ Location of templates used by template engine """
-    templates_dir = 'binsleuth/templates'
+    report_dir = './reports'
+
 
     """ Generate html reports """
     generate_reports = True

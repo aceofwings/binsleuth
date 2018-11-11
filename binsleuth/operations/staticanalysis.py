@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 class StaticOperation(Operation):
 
     project_settings = {'auto_load_libs': False}
+    operation_name = "Static Analysis"
+
 
     def __init__(self, project, config, **kwargs):
         super().__init__(project,**kwargs)

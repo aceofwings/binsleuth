@@ -1,4 +1,6 @@
 import angr
+import logging
+import os
 from jinja2 import Environment, PackageLoader, select_autoescape
 from binsleuth.core.report import Report
 
@@ -9,6 +11,7 @@ desired by the user
 
 
 
+logger = logging.getLogger(__name__)
 
 class Engine(object):
 
@@ -38,9 +41,20 @@ class Engine(object):
         """
         define soft closing operations here eg. stopping pending operations
         """
+        logger.info("Generating report")
+        reports = {"reports" : {}}
+
+        reports['operations'] =  self.runner.finishedOperations
+        reports['unfinishedOperations'] = self.runner.pendingOperations
+
         if self.config.generate_reports:
             for  finish_op in self.runner.finishedOperations:
-                print(Report.generate_html_file(finish_op.report_template,obj=finish_op.report_obj()))
+                reports['reports'][finish_op.obj_name] = finish_op.report_obj()
+
+        report = Report.generate_html_file("base.html",**reports)
+
+        with open(os.path.join(self.config.report_dir,"info.html"), "w") as fh:
+            fh.write(report)
 
         self.exit()
 
@@ -76,6 +90,7 @@ class OperationRunner(object):
     pendingOperations =  []
     finishedOperations = []
 
+
     def __init__(self,file,config):
         """
         file - the filename/location
@@ -84,7 +99,8 @@ class OperationRunner(object):
         """
         for operation in config.operations:
             project = angr.Project(file, load_options=operation.project_settings)
-            self.pendingOperations.append(operation(project,config,**{}))
+            op = operation(project,config,**{})
+            self.pendingOperations.append(op)
 
     def runOperations(self):
         """
@@ -93,6 +109,9 @@ class OperationRunner(object):
         for poperation in self.pendingOperations:
             poperation.run()
             self.finishedOperations.append(poperation)
+
+
+
 
 
 

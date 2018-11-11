@@ -12,6 +12,9 @@ logger =  logging.getLogger(__name__)
 
 class ProccessMonitor(Operation):
 
+    operation_name = "Static Analysis"
+
+
     def __init__(self,project,config, exe=None ,**kwargs):
         self._connection_memory = {}
         self._process_memory = {}
