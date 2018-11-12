@@ -1,6 +1,9 @@
 from binsleuth.core.operation import Operation
+import subprocess
 import requests
+import datetime
 import logging
+import json
 import angr
 
 logger = logging.getLogger(__name__)
@@ -14,17 +17,32 @@ class CVEChecker(Operation):
         self.timeframe = config.timeframe
         self.file = config.file
         self.filename = self.file.split('/')[-1]
+        self.raw_data = {}
         self.results = {}
+        self.libs = []
 
     def run(self):
         logger.info("Grabbing libraries for %s" %(self.filename))
         self.get_libs()
-        logger.info("Parsing for CVEs")
-        self.cve_search()
-        if self.results:
-            logger.info("Found CVEs for %s" %(self.results))
+
+        #if libraries found, look for CVEs
+        if self.libs:
+            logger.info("%s found" %(len(self.libs)))
+            logger.info("Parsing database for CVEs")
+            self.cve_search()
+
+            #if CVEs found process them
+            if self.raw_data:
+                logger.info("Found CVEs for the following:")
+                for key in self.raw_data:
+                    print("\t\t\t\t\t\t\t\t\t\t" +  key)
+                logger.info("processing data...")
+                self.process_json()
+                
+            else:
+                logger.info("No CVEs found")
         else:
-            logger.info("No CVEs found")
+            logger.info("No libraries found")
 
 
     # Get the linked libraries
@@ -36,14 +54,36 @@ class CVEChecker(Operation):
         del libs[self.filename]
         
         #convert orderedDict to list of library names
-        self.Libs = []
         for lib in libs:
-            self.Libs.append(lib)
+            self.libs.append(lib)
     
+
     #parse cve database
     def cve_search(self):
-        for lib in self.Libs:
-            URL = 'http://cve.circl.lu/api/browse/'+lib
-            req = requests.get(URL)
-            if req.json():
-                self.results[lib]=req.json()
+        for lib in self.libs:
+
+            #query databse for CVEs
+            query = "search.py -o json -f "+lib
+
+            #reformat to json
+            info = '['+str(subprocess.check_output(query, shell=True))[2:-1].replace('\\n','\n').replace('\t','').replace('}\n{', '},\n{').replace('\\"','\"').replace("\\'","'")+']'
+            
+            #load json
+            result = json.loads(info)
+            if result:
+                self.raw_data[lib]=result
+                        
+    def process_json(self):
+        for key in self.raw_data:
+            self.results[key] = {}
+            for cve in self.raw_data[key]:
+                d = cve['Published'].split(' ')[0]
+                d = int(datetime.datetime.strptime(d, '%Y-%m-%d').strftime('%Y'))
+                dateLimit = int(datetime.date.today().strftime('%Y')) - self.timeframe
+                if d > dateLimit:
+                    details = {}
+                    details['id'] = cve['id']
+                    details['Published'] = cve['Published']
+                    details['summary'] = cve['summary']
+                    self.results[key][cve['id']] = details
+                    print(details)

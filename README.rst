@@ -44,6 +44,8 @@ Due to some packages being out of date on pypi, directly download them from giti
     pip install -e ./bingraphvis
     git clone https://github.com/axt/angr-utils
     pip install -e ./angr-utils
+    git clone https://github.com/cve-search/cve-search.git
+    pip install -r ./cve-search
 
 
 Installation

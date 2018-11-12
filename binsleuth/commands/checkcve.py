@@ -20,7 +20,7 @@ class CheckCVECommand(BaseCommand):
         super(CheckCVECommand,self).run(arguments)
         if arguments.file is not None:
             self.config.file = arguments.file
-        if arguments.timeframe > 1:
+        if int(arguments.timeframe) > 1:
             self.config.timeframe = arguments.timeframe
 
         check = Engine.build_operation(self.config,CVEChecker)
@@ -35,4 +35,4 @@ class CheckCVECommand(BaseCommand):
         """
         super(CheckCVECommand,self).extend_argparse(parser)
         parser.add_argument('--file', '-f', default=None, help='file to which to run the command with')
-        parser.add_argument('--timeframe', '-t', metavar='YEARS', default=1, help='Number of years to look back to check for CVEs\nCan only go back to 2002')       
+        parser.add_argument('--timeframe', '-t', metavar='YEARS', default=1, type=int, help='Number of years to look back to check for CVEs\nCan only go back to 2002')       

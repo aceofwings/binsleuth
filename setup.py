@@ -5,6 +5,16 @@ try:
     from setuptools import setup
     from setuptools import find_packages
     packages = find_packages()
+    print("Seting up CVE database...")
+    os.system("../cve-search/sbin/db_mgmt.py -p")
+    print("Adding CPEs...")
+    os.system("../cve-search/sbin/db_mgmt_cpe_dictionary.py")
+    print("Updating CVEs in database...")
+    os.system("../cve-search/sbin/db_updater.py -c")
+    os.system("../cve-search/sbin/db_mgmt_ref.py")
+    print("Installing search.py")
+    os.system("cp ../cve-search/bin/search.py ./bin")
+    os.system("cp ../cve-search/lib/* ./lib")
 except ImportError:
     #Some versions of python come with setuptools bundled
     from distutils.core import setup

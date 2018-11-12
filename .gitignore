@@ -102,3 +102,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# CVE-Search
+lib/*
+bin/search.py
