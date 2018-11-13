@@ -41,7 +41,7 @@
 
       {% for o in unfishedOperations %}
       <li class="nav-item">
-        <a class="nav-link disabled" href="#"> {{o.operate_name}}</a>
+        <a class="nav-link disabled" href="#{{o.operate_name}}"> {{o.operate_name}}</a>
       </li>
       {% endfor %}
     </ul>
