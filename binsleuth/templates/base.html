@@ -31,11 +31,11 @@
       </div>
     </div>
 
-    <nav class="navbar nav-padding navbar-dark bg-dark">
-      <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+    <nav class="navbar  navbar-expand-lg nav-padding navbar-dark bg-dark">
+      <ul class="navbar-nav">
       {% for o in operations %}
       <li class="nav-item">
-        <a class="nav-link" href="#"> {{o.operation_name}}</a>
+        <a class="nav-link" href="#"> {{o.operation_name}} </a>
       </li>
       {% endfor %}
 

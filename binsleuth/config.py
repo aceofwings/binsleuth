@@ -9,7 +9,7 @@ class Config(object):
     framework will default to this
     """
 
-    operations = [FileMetaData]
+    operations = [FileMetaData, StaticOperation ,ControlFlowGraph]
 
     """
     Can be a single string value or an array of string values

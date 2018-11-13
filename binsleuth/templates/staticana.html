@@ -1,0 +1,51 @@
+<div class="row operation-header">
+  <div class="col-lg-12">
+    <p> Static Analysis </p>
+  </div>
+</div>
+
+<div class="row function-tab">
+  <div class="col-lg-4">
+    Function Name
+  </div>
+
+  <div class="col-lg-2">
+    Size
+  </div>
+  <div class="col-lg-2">
+    Is Returning
+  </div>
+  <div class="col-lg-2">
+    Is Syscall?
+  </div>
+  <div class="col-lg-2 ">
+    Arguments
+  </div>
+</div>
+
+{% for key, value in report.functions.items() %}
+<div class="row justify-content-center function-tab">
+  <div class="col-lg-4">
+    <a href="#image-{{value.name}}">
+     {{value.name}} -{{ '%0x' % key }}
+     </a>
+  </div>
+  <div class="col-lg-2">
+    {{value.size}}
+  </div>
+  <div class="col-lg-2">
+    {{value.returning}}
+  </div>
+  <div class="col-lg-2">
+    {{value.is_syscall}}
+  </div>
+  <div class="col-lg-2 ">
+    {% if not value.arguments %}
+      <b>No arguments</b>
+    {% endif %}
+   {% for arg in value.arguments %}
+      {{arg}}  <b> | </b>
+   {% endfor %}
+  </div>
+</div>
+{% endfor %}
