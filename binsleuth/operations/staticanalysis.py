@@ -1,4 +1,5 @@
 from binsleuth.core.operation import Operation
+from binsleuth.core.report import ReportObj
 import logging
 import angr
 
@@ -9,7 +10,8 @@ class StaticOperation(Operation):
 
     project_settings = {'auto_load_libs': False}
     operation_name = "Static Analysis"
-
+    report_template = "staticana.html"
+    obj_name = "staticdata"
 
     def __init__(self, project, config, **kwargs):
         super().__init__(project,**kwargs)
@@ -25,7 +27,6 @@ class StaticOperation(Operation):
         self.potential_hard_coded()
         self._d3js_functions()
         self._d3js_hub()
-
 
     def buffer_overflow(self):
 
@@ -270,3 +271,12 @@ class StaticOperation(Operation):
         }
 
         self._report = data
+
+
+    def report_obj(self):
+            return StaticDataReport(self)
+
+class StaticDataReport(ReportObj):
+    def __init__(self,staticOperation):
+        super().__init__(staticOperation)
+        self.functions = staticOperation._function_dict

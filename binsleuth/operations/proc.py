@@ -5,6 +5,7 @@ from datetime import datetime
 from graphviz import Source, Digraph
 import logging
 
+from binsleuth.core.report import ReportObj
 from binsleuth.core.operation import Operation
 
 logger =  logging.getLogger(__name__)
