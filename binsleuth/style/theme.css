@@ -1,0 +1,56 @@
+.operation-tab {
+  background-color: red
+}
+
+.operation-header {
+  background-color: #C1CAD6;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+body {
+  background-color: #767B91
+}
+
+.metadata-tab {
+  background-color: #FFF;
+  border-style: solid;
+  border-width: 1px;
+}
+
+
+.nav-padding{
+  padding: 20px;
+  margin-bottom: 5px;
+}
+
+b {
+  color: #2A324B;
+}
+
+.indent-left{
+  margin-left: 5px;
+}
+
+.function-tab {
+  background-color: #FFF;
+  border-style: solid;
+  border-width: 1px;
+  padding: 10px;
+
+}
+
+
+.image-header {
+  background-color: #FFF;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  padding: 10px;
+}
+
+.image-body {
+  background-color: #C1CAD6;
+  padding: 10px;
+}

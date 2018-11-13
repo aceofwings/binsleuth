@@ -5,6 +5,7 @@ import logging
 
 from angrutils.exploration import NormalizedSteps
 from binsleuth.core.operation import Operation
+from binsleuth.core.report import ReportObj
 
 
 # graphviz
@@ -15,12 +16,22 @@ class ControlFlowGraph(Operation):
 
     project_settings = {'auto_load_libs' : False}
 
+    operation_name = "CFG Analysis"
+
+    obj_name = "cfg"
+
+    report_template = "cfg.html"
+
+    func_names = []
+
     def __init__(self,project,config,**kwargs):
         super(ControlFlowGraph, self).__init__(project, **kwargs)
         self.function_out_dir = config.function_graph_location
         self.cfg_loops_out_dir = config.loop_graph_location
         self.sm = project.factory.simulation_manager(save_unconstrained=True,**kwargs)
         self.project_name = os.path.basename(self.project.filename)
+        self.OUT_DIR = os.path.join(self.function_out_dir,self.project_name)
+
 
     def run(self):
         logger.info("Generating cfg graph for " + self.project_name)
@@ -54,17 +65,17 @@ class ControlFlowGraph(Operation):
         """
         cfg = self.static_cfg()
 
-        OUT_DIR = os.path.join(self.function_out_dir,self.project_name)
-
-        if not os.path.exists(OUT_DIR):
+        if not os.path.exists(self.OUT_DIR):
             try:
-                os.mkdir(OUT_DIR)
+                os.mkdir(self.OUT_DIR)
             except Exception as err:
                 print(str(err))
                 return False
 
+        self.func_names = cfg.kb.functions.values()
+
         for func in cfg.kb.functions.values():
-            plot_func_graph(self.project, func.transition_graph, "%s/%s_cfg" % (OUT_DIR, func.name), asminst=True, vexinst=False)
+            plot_func_graph(self.project, func.transition_graph, "%s/%s" % (self.OUT_DIR, func.name), asminst=True, vexinst=False)
 
         return True
 
@@ -127,3 +138,12 @@ class ControlFlowGraph(Operation):
                        remove_path_terminator=True
                       )
                 c += 1
+
+    def report_obj(self):
+        return CFGDataReport(self)
+
+class CFGDataReport(ReportObj):
+    def __init__(self,CFGOperation):
+        super().__init__(CFGOperation)
+        self.functions = CFGOperation.func_names
+        self.functionDir = os.path.abspath(CFGOperation.OUT_DIR)

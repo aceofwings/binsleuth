@@ -9,6 +9,8 @@ logger =  logging.getLogger(__name__)
 
 class FlowGraphCommand(BaseCommand):
 
+    description =  "Build a flowgraph of the executing program"
+
     def __init__(self,args):
         super(FlowGraphCommand,self).__init__(args)
         self.config = Config()

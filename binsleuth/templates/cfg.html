@@ -1,0 +1,22 @@
+<div class="row operation-header" id={{report.objName}}>
+  <div class="col-lg-12">
+    <p>CFG Images and Results</p>
+  </div>
+</div>
+
+{% for function in report.functions %}
+<div class="row image-header">
+  <div class="col-lg-12">
+    <div class="=  text-center">
+      {{function.name}}
+    </div>
+  </div>
+</div>
+<div class="row image-body">
+  <div class="col-lg-12">
+  <div class="text-center " id=image-{{function.name}}>
+    <img src="{{report.functionDir}}/{{function.name}}.png" alt="">
+  </div>
+</div>
+</div>
+{% endfor %}

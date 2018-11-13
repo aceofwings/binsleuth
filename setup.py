@@ -24,7 +24,11 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 install_requires = [
 'angr==8.18.10.25',
 'angr-utils',
-'bingraphvis==0.2.0'
+'bingraphvis==0.2.0',
+'psutil==5.4.8',
+'bingraphvis==0.2.0',
+'graphviz',
+'jinja2'
 ]
 
 setup(
