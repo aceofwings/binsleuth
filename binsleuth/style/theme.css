@@ -1,0 +1,33 @@
+.operation-tab {
+  background-color: red
+}
+
+.operation-header {
+  background-color: #C1CAD6;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+body {
+  background-color: #767B91
+}
+
+.metadata-tab {
+  background-color: #FFF;
+  border-style: solid;
+  border-width: 1px;
+}
+
+
+.nav-padding{
+  padding: 20px;
+  margin-bottom: 5px;
+}
+
+b {
+  color: #2A324B;
+}
+
+.indent-left{
+  margin-left: 5px;
+}

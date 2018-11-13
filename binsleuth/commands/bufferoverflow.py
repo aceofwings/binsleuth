@@ -8,6 +8,8 @@ logger =  logging.getLogger(__name__)
 
 class BufferOverflowCommand(BaseCommand):
 
+    description = "Determine if a bufferoverflow can occur in control flow"
+
     def __init__(self,args):
         super(BufferOverflowCommand,self).__init__(args)
         self.config = Config()

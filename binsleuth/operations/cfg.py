@@ -15,6 +15,9 @@ class ControlFlowGraph(Operation):
 
     project_settings = {'auto_load_libs' : False}
 
+    operation_name = "CFG Analysis"
+
+
     def __init__(self,project,config,**kwargs):
         super(ControlFlowGraph, self).__init__(project, **kwargs)
         self.function_out_dir = config.function_graph_location

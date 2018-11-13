@@ -16,6 +16,9 @@ class FileMetaData(Operation):
     """
 
     project_settings = {}
+    report_template = "metadata.html"
+    obj_name = "metadata"
+    operation_name = "File Metadata"
 
     def __init__(self,project,config,**kwargs):
         self.project = project
@@ -72,3 +75,16 @@ class FileMetaData(Operation):
             hashfunc.update(buffer)
 
         return hashfunc.hexdigest()
+
+    def report_obj(self):
+        return MetaDataReport(self)
+
+
+
+class MetaDataReport(object):
+    def __init__(self,metadatoperation):
+        self.size = metadatoperation.size
+        self.filename = metadatoperation.project.filename
+        self.maglabel = metadatoperation.maglabel
+        self.primaryHash = metadatoperation.primaryHash
+        self.secondaryHash = metadatoperation.secondaryHash
