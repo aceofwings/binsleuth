@@ -1,5 +1,3 @@
-from binsleuth.config import Config
-
 
 
 class Report(object):
@@ -7,8 +5,7 @@ class Report(object):
     report_engine = None
 
     def __init__(self):
-        self.temeplate_dir = Config.templates_dir
-
+        pass
 
     @classmethod
     def generate_template(cls,template_name):
@@ -19,3 +16,9 @@ class Report(object):
     def generate_html_file(cls, template_name, **kwargs):
         template = cls.generate_template(template_name)
         return template.render(**kwargs)
+
+class ReportObj(object):
+
+    def __init__(self, operation):
+        self.operationName = operation.operation_name
+        self.objName = operation.obj_name

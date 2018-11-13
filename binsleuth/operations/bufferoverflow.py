@@ -1,5 +1,6 @@
-from binsleuth.core.operation import Operation
 import logging
+
+from binsleuth.core.operation import Operation
 
 logger = logging.getLogger(__name__)
 

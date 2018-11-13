@@ -1,4 +1,5 @@
 from binsleuth.core.operation import Operation
+from binsleuth.core.report import ReportObj
 import logging
 import angr
 
@@ -275,6 +276,7 @@ class StaticOperation(Operation):
     def report_obj(self):
             return StaticDataReport(self)
 
-class StaticDataReport(object):
+class StaticDataReport(ReportObj):
     def __init__(self,staticOperation):
+        super().__init__(staticOperation)
         self.functions = staticOperation._function_dict

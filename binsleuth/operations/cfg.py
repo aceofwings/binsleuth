@@ -5,6 +5,7 @@ import logging
 
 from angrutils.exploration import NormalizedSteps
 from binsleuth.core.operation import Operation
+from binsleuth.core.report import ReportObj
 
 
 # graphviz
@@ -141,7 +142,8 @@ class ControlFlowGraph(Operation):
     def report_obj(self):
         return CFGDataReport(self)
 
-class CFGDataReport(object):
+class CFGDataReport(ReportObj):
     def __init__(self,CFGOperation):
+        super().__init__(CFGOperation)
         self.functions = CFGOperation.func_names
         self.functionDir = os.path.abspath(CFGOperation.OUT_DIR)

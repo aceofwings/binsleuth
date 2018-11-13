@@ -1,4 +1,6 @@
 from binsleuth.core.operation import Operation
+from binsleuth.core.report import Report, ReportObj
+
 import os
 import hashlib
 import logging
@@ -81,8 +83,9 @@ class FileMetaData(Operation):
 
 
 
-class MetaDataReport(object):
+class MetaDataReport(ReportObj):
     def __init__(self,metadatoperation):
+        super().__init__(metadatoperation)
         self.size = metadatoperation.size
         self.filename = metadatoperation.project.filename
         self.maglabel = metadatoperation.maglabel

@@ -35,7 +35,7 @@
       <ul class="navbar-nav">
       {% for o in operations %}
       <li class="nav-item">
-        <a class="nav-link" href="#"> {{o.operation_name}} </a>
+        <a class="nav-link" href="#{{o.obj_name}}"> {{o.operation_name}} </a>
       </li>
       {% endfor %}
 
