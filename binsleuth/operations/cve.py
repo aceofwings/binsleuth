@@ -1,4 +1,5 @@
 from binsleuth.core.operation import Operation
+from binsleuth.report import Report
 import subprocess
 import requests
 import datetime
@@ -19,6 +20,7 @@ class CVEChecker(Operation):
         self.filename = self.file.split('/')[-1]
         self.raw_data = {}
         self.results = {}
+        self.report = {}
         self.libs = []
 
     def run(self):
@@ -38,7 +40,8 @@ class CVEChecker(Operation):
                     print("\t\t\t\t\t\t\t\t\t\t" +  key)
                 logger.info("processing data...")
                 self.process_json()
-                
+                self.report_format()
+                Report(self.report, build_d3js=True, build_json=True)
             else:
                 logger.info("No CVEs found")
         else:
@@ -86,4 +89,25 @@ class CVEChecker(Operation):
                     details['Published'] = cve['Published']
                     details['summary'] = cve['summary']
                     self.results[key][cve['id']] = details
-                    print(details)
+                    #print(details)
+
+    def report_format(self):
+        report = []
+        for key in self.results:
+            libs = {}
+            libs["name"] = key
+            cves = []
+            for ID in self.results[key]:
+                cve = {}
+                summary = {}
+                summaries = []
+                cve["name"] = ID
+                summary["name"] = self.results[key][ID]["summary"]
+                summary["size"] = 300
+                summaries.append(summary)
+                cve["children"] = summaries
+                cves.append(cve) 
+            libs["children"] = cves 
+            report.append(libs)
+        self.report["name"] = "CVE Analysis"    
+        self.report["children"] = report
