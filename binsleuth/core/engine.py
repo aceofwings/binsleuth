@@ -46,6 +46,7 @@ class Engine(object):
 
         reports['operations'] =  self.runner.finishedOperations
         reports['unfinishedOperations'] = self.runner.pendingOperations
+        reports['fileName'] = self.config.file
 
         if self.config.generate_reports:
             for  finish_op in self.runner.finishedOperations:
