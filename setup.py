@@ -28,7 +28,7 @@ install_requires = [
 'psutil==5.4.8',
 'bingraphvis==0.2.0',
 'graphviz',
-'jinja2'
+'jinja2',
 ]
 
 setup(
