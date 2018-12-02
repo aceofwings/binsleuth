@@ -10,7 +10,7 @@ Install system dependencies
     tcl8.6-dev tk8.6-dev python-tk graphviz
 
 
-..code-block::bash
+.. code-block::bash
 
     pip install graphviz
 
