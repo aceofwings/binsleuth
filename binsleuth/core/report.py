@@ -18,6 +18,10 @@ class Report(object):
         return template.render(**kwargs)
 
 class ReportObj(object):
+    """
+    An object which all operations aggregate results into. Attributes defined here are common to all
+    operation
+    """
 
     def __init__(self, operation):
         self.operationName = operation.operation_name
